@@ -28,6 +28,8 @@ from coursemap.domain.prerequisite_utils import prereqs_met
 logger = logging.getLogger(__name__)
 
 REBALANCE_THRESHOLD = 30  # credits below which the final semester triggers rebalancing
+# For postgrad plans where courses are 30cr, use a higher threshold
+_REBALANCE_THRESHOLD_POSTGRAD = 60
 
 
 @dataclass
@@ -84,7 +86,13 @@ class PlanGenerator:
 
         # Pre-completed courses are excluded from scheduling but seed the
         # completed set so their codes satisfy prerequisite checks.
-        remaining: set[str] = set(self.courses.keys()) - self.prior_completed
+        # Zero-credit courses (practicums, language enrollments) are non-schedulable
+        # and must never enter the remaining set - they would deadlock the scheduler.
+        remaining: set[str] = {
+            code for code in self.courses.keys()
+            if code not in self.prior_completed
+            and self.courses[code].credits > 0
+        }
         completed: set[str] = set(self.prior_completed)
         semesters: list[SemesterPlan] = []
 
@@ -229,8 +237,13 @@ class PlanGenerator:
 
     def _rebalance(self, semesters: list[SemesterPlan]) -> list[SemesterPlan]:
         """
-        Post-pass rebalancing: when the final semester is underfilled (< REBALANCE_THRESHOLD
+        Post-pass rebalancing: when the final semester is underfilled (< threshold
         credits), attempt to move flexible courses from earlier semesters into it.
+
+        The rebalance threshold is now adaptive: it's set to 1.5× the median
+        course credit value in the plan, clamped to [15, 60]. This means a
+        postgrad plan of 30cr courses uses threshold=45, not 30 - correctly
+        triggering rebalancing. An undergrad plan of 15cr courses uses threshold=22.
 
         A course is a valid rebalancing candidate when:
           (a) it is offered in the same semester type as the final (flexibility check),
@@ -251,13 +264,22 @@ class PlanGenerator:
         if len(semesters) < 2:
             return semesters
 
+        # Compute adaptive threshold based on median course credit in this plan.
+        all_credits = [c.credits for s in semesters for c in s.courses if c.credits > 0]
+        if all_credits:
+            sorted_cr = sorted(all_credits)
+            median_cr = sorted_cr[len(sorted_cr) // 2]
+            threshold = max(15, min(60, int(median_cr * 1.5)))
+        else:
+            threshold = REBALANCE_THRESHOLD
+
         final = semesters[-1]
-        if final.total_credits() >= REBALANCE_THRESHOLD:
+        if final.total_credits() >= threshold:
             return semesters
 
         logger.debug(
-            "Rebalancing: final semester %s %s has only %d credits (threshold %d)",
-            final.year, final.semester, final.total_credits(), REBALANCE_THRESHOLD,
+            "Rebalancing: final semester %s %s has only %d credits (adaptive threshold %d)",
+            final.year, final.semester, final.total_credits(), threshold,
         )
 
         # Work with mutable lists of course tuples for easy manipulation.
@@ -269,7 +291,7 @@ class PlanGenerator:
         # prerequisite codes required by every course that sits between this
         # source semester and the final; those courses must not be moved.
         for src_idx in range(len(sem_courses) - 2, -1, -1):
-            if sem_courses[-1] and sum(c.credits for c in sem_courses[-1]) >= REBALANCE_THRESHOLD:
+            if sem_courses[-1] and sum(c.credits for c in sem_courses[-1]) >= threshold:
                 break  # already fixed
 
             # Build the set of codes needed as prerequisites by courses in
@@ -297,7 +319,7 @@ class PlanGenerator:
 
             # Iterate over a snapshot so we can remove from the live list.
             for course in list(sem_courses[src_idx]):
-                if final_credits >= REBALANCE_THRESHOLD:
+                if final_credits >= threshold:
                     break
 
                 # (a) flexibility: offered in the final semester type

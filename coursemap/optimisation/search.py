@@ -386,16 +386,22 @@ class PlanSearch:
             )
 
         # Step 5: run scheduler
-        # Compute a safe scheduling horizon. The default of 24 is sufficient for
-        # standard 3-year degrees (360cr) but too low for taught master's programmes
-        # with large credit loads (e.g. 240cr with 30cr thesis courses) or for plans
-        # where many semester slots are empty due to S1/S2/SS cycling.
-        # Formula: 2x the minimum number of semesters needed (rounded up), giving
-        # generous headroom for prerequisite chains and empty SS slots.
         working_credits = sum(c.credits for c in working_set.values())
-        # Assume worst case: 15cr minimum per semester, 1/3 slots empty (SS cycling)
-        min_sems = math.ceil(working_credits / self.generator_template.max_credits)
-        dynamic_max_semesters = max(24, min_sems * 3)
+        # Effective per-semester credit capacity: the lesser of the credit cap
+        # and what max_courses_per_semester can deliver. When max_courses=2 and
+        # all courses are 15cr, each semester holds at most 30cr - not 60cr.
+        _max_courses = self.generator_template.max_courses
+        if _max_courses is not None:
+            _min_cr = min((c.credits for c in working_set.values() if c.credits > 0), default=15)
+            _effective_cap = min(self.generator_template.max_credits, _max_courses * _min_cr)
+        else:
+            _effective_cap = self.generator_template.max_credits
+        min_sems = math.ceil(working_credits / max(1, _effective_cap))
+        # Safety multiplier: allow 2.5× the theoretical minimum, but at least 16
+        # semesters (8 years) and at most 32 (16 years - an absolute ceiling).
+        # The old flat 24 was too small for some postgrad programmes (e.g. 480cr PhDs)
+        # and too large a safety net for short diplomas (e.g. 120cr PGCert).
+        dynamic_max_semesters = max(16, min(32, math.ceil(min_sems * 2.5)))
 
         generator = PlanGenerator(
             working_set,
@@ -455,6 +461,97 @@ class PlanSearch:
                 ", ".join(e.split()[-1].rstrip(".") for e in excluded_missing),
             )
 
+        # Trim plan to degree_total credits.
+        # The working-set prereq expansion may add more courses than needed.
+        # Remove lowest-priority courses to bring total to degree_total.
+        if degree_total > 0:
+            plan_total = plan.total_credits() + plan.prior_credits() + plan.transfer_credits
+            if plan_total > degree_total:
+                excess = plan_total - degree_total
+                # Identify prereqs needed by other plan courses
+                plan_codes = {c.code for s in plan.semesters for c in s.courses}
+                prereqs_needed: set[str] = set()
+                from coursemap.domain.prerequisite import (
+                    CoursePrerequisite as _CP3,
+                    AndExpression as _AND3,
+                    OrExpression as _OR3,
+                )
+                for s in plan.semesters:
+                    for c in s.courses:
+                        if c.prerequisites is None:
+                            continue
+                        stack = [c.prerequisites]
+                        while stack:
+                            n = stack.pop()
+                            if isinstance(n, _CP3) and n.code in plan_codes:
+                                prereqs_needed.add(n.code)
+                            elif isinstance(n, (_AND3, _OR3)):
+                                stack.extend(n.children)
+                # Remove non-required, non-preferred, non-tree courses first
+                # Protect required, always-include, and direct prereqs of non-elective courses.
+                # Pool courses (elective_codes) are optionally removable if they're
+                # not in always_include_in_pool, since the pool offers alternatives.
+                non_elective_needed: set[str] = set()
+                from coursemap.domain.prerequisite import (
+                    CoursePrerequisite as _CPt,
+                    AndExpression as _ANDt,
+                    OrExpression as _ORt,
+                )
+                for s in plan.semesters:
+                    for c in s.courses:
+                        if c.code in elective_codes and c.code not in always_include_in_pool:
+                            continue  # pool courses don't protect their own prereqs in trim
+                        if c.prerequisites is None:
+                            continue
+                        stk = [c.prerequisites]
+                        while stk:
+                            n = stk.pop()
+                            if isinstance(n, _CPt) and n.code in plan_codes:
+                                non_elective_needed.add(n.code)
+                            elif isinstance(n, (_ANDt, _ORt)):
+                                stk.extend(n.children)
+
+                protected_trim = (required_codes | always_include_in_pool | non_elective_needed)
+                # Pool courses are removable (from end of pool, higher-level first)
+                # Non-pool extras that are not protected are also removable
+                removable_pool = sorted(
+                    [c for s in plan.semesters for c in s.courses
+                     if c.code in elective_codes
+                     and c.code not in protected_trim
+                     and c.code not in self.preferred_electives],
+                    key=lambda c: (-c.level, c.code),
+                )
+                removable_extras = sorted(
+                    [c for s in plan.semesters for c in s.courses
+                     if c.code not in protected_trim
+                     and c.code not in elective_codes
+                     and c.code not in self.preferred_electives],
+                    key=lambda c: (-c.level, c.code),
+                )
+                removed: set[str] = set()
+                for candidate in removable_extras + removable_pool:
+                    if excess <= 0:
+                        break
+                    if candidate.code not in removed:
+                        removed.add(candidate.code)
+                        excess -= candidate.credits
+                if removed:
+                    from coursemap.domain.plan import SemesterPlan
+                    new_sems = []
+                    for sem in plan.semesters:
+                        new_courses = [c for c in sem.courses if c.code not in removed]
+                        if new_courses:
+                            new_sems.append(SemesterPlan(
+                                year=sem.year,
+                                semester=sem.semester,
+                                courses=tuple(new_courses),
+                            ))
+                    plan = type(plan)(
+                        semesters=tuple(new_sems),
+                        prior_completed=plan.prior_completed,
+                        transfer_credits=plan.transfer_credits,
+                    )
+
         logger.info(
             "Major '%s': %d semesters, %d credits",
             name, len(plan.semesters), plan.total_credits() + plan.prior_credits(),
@@ -504,6 +601,8 @@ class PlanSearch:
         mode   = self.generator_template.mode
 
         def is_schedulable(code: str) -> bool:
+            if code in self.excluded_courses:
+                return False
             c = self.courses.get(code)
             return c is not None and any(
                 o.campus == campus and o.mode == mode for o in c.offerings
@@ -643,14 +742,26 @@ class PlanSearch:
         # Top-up pass: when all pools have credits > 0 but their targets
         # sum to less than elective_budget (e.g. a 120cr GradDip with a
         # single 60cr pool), keep selecting to reach the degree total.
+        #
+        # When pool_target_sum > elective_budget the pool has been
+        # over-captured (scraped more courses than the degree needs).
+        # In that case cap at pool_target_sum to prevent runaway selection.
+        # Otherwise use elective_budget as usual.
         # ----------------------------------------------------------------
         if not zero_credit_nodes and elective_budget > 0:
+            pool_target_sum = sum(n.credits for n in known_credit_nodes)
             sched_selected = sum(
                 self.courses[c].credits
                 for c in selected
                 if c in self.courses and is_schedulable(c)
             )
-            remaining = elective_budget - sched_selected
+            # Only cap at pool_target_sum when the pools over-specify (more
+            # pool courses exist than the degree target allows).
+            if pool_target_sum > elective_budget:
+                topup_cap = pool_target_sum
+            else:
+                topup_cap = elective_budget
+            remaining = topup_cap - sched_selected
             if remaining > 0:
                 for node in known_credit_nodes:
                     for code in sorted(node.course_codes, key=_sort_key):
@@ -765,6 +876,12 @@ class PlanSearch:
         """
         Build the set of courses the scheduler should actually plan.
 
+        Automatically expands the set to include any prerequisite-chain
+        courses needed to satisfy prerequisites of major/elective courses
+        that aren't already in the set.  For example, if a major requires
+        159201 (which needs 159102, which needs 159101), all three are
+        included so the scheduler respects the correct ordering.
+
         Excludes:
         - Courses the student has already completed.
         - Courses the student has explicitly excluded (--exclude flag).
@@ -778,7 +895,7 @@ class PlanSearch:
         campus    = self.generator_template.campus
         mode      = self.generator_template.mode
         no_summer = self.generator_template.no_summer
-        all_codes = major_codes | elective_codes
+        all_codes = set(major_codes) | set(elective_codes)
 
         def _has_valid_offering(course: Course) -> bool:
             matching = [o for o in course.offerings if o.campus == campus and o.mode == mode]
@@ -787,6 +904,56 @@ class PlanSearch:
             if no_summer:
                 return any(o.semester in ("S1", "S2") for o in matching)
             return True
+
+        # --- Expand prerequisite chains -----------------------------------
+        # Walk the prereq graph of every course in all_codes and add any
+        # prerequisite course that:
+        #   a) exists in the full course catalogue
+        #   b) has not already been completed by the student
+        #   c) has a valid offering for this campus/mode
+        # This ensures that e.g. 159201 (requires 159102 → 159101 → 159100)
+        # causes all four courses to be included in the working set, so the
+        # scheduler enforces the correct semester ordering.
+        def _collect_prereq_codes(code: str, visited: set[str]) -> set[str]:
+            if code in visited or code not in self.courses:
+                return set()
+            visited.add(code)
+            course = self.courses[code]
+            prereq = course.prerequisites
+            if prereq is None:
+                return set()
+            needed: set[str] = set()
+            stack = [prereq]
+            while stack:
+                node = stack.pop()
+                from coursemap.domain.prerequisite import (
+                    CoursePrerequisite, AndExpression, OrExpression,
+                )
+                if isinstance(node, CoursePrerequisite):
+                    child = node.code
+                    if (
+                        child not in visited
+                        and child in self.courses
+                        and child not in prior_completed
+                        and child not in self.excluded_courses
+                    ):
+                        needed.add(child)
+                        needed.update(_collect_prereq_codes(child, visited))
+                elif isinstance(node, (AndExpression, OrExpression)):
+                    stack.extend(node.children)
+            return needed
+
+        # Expand prereq chains. Pass only the expansion set as "visited"
+        # (not all_codes) so we can collect prereqs for major courses.
+        # Codes already in all_codes are the destination; we want to find
+        # the courses needed *before* them.
+        expansion: set[str] = set()
+        for code in list(all_codes):
+            expansion.update(_collect_prereq_codes(code, set(expansion)))
+        # Remove codes that are already in the original set to avoid duplication
+        expansion -= all_codes
+        all_codes.update(expansion)
+        # ------------------------------------------------------------------
 
         return {
             code: self.courses[code]

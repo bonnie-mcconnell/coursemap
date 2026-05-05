@@ -34,6 +34,8 @@ class Course:
     prerequisites: PrerequisiteExpression | None = None
     corequisites:  frozenset[str] = field(default_factory=frozenset)
     restrictions:  frozenset[str] = field(default_factory=frozenset)
+    url:           str | None = None          # Massey catalogue URL for this course
+    description:   str | None = None          # Short description (intro field from scraper)
 
     def is_offered(self, semester: str, campus: str, mode: str) -> bool:
         """Return True if this course has an offering in the given semester and delivery mode."""

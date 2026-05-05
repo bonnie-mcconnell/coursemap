@@ -36,6 +36,7 @@ from coursemap.domain.requirement_utils import (
 )
 from coursemap.optimisation.search import PlanSearch
 from coursemap.planner.generator import PlanGenerator
+from coursemap.planner.elective_filler import ElectiveFiller
 from coursemap.rules.degree_rules import build_degree_tree, filter_requirement_tree, profile_for
 
 logger = logging.getLogger(__name__)
@@ -592,15 +593,77 @@ class PlannerService:
             no_summer=no_summer,
         )
 
-        gap = self.free_elective_gap(major_name, campus=campus, mode=mode) if major_name else 0
-        if gap <= 0:
-            if transfer_credits > 0:
-                base_plan.transfer_credits = transfer_credits
-            return base_plan, []
+        degree_total = self.degree_total_credits(major_name) if major_name else 360
 
-        # Reduce gap by transfer credits the student already has.
-        effective_gap = max(0, gap - transfer_credits)
+        # Compute the true filler gap directly from the base plan's actual total.
+        # base_plan.total_credits() already accounts for all prerequisite-chain
+        # courses the scheduler actually placed - no need to estimate them separately.
+        # This avoids the "overcounting" bug where prereq extras of unreachable courses
+        # (e.g. a stats course needing a non-DIS maths prerequisite) were subtracted
+        # from the budget even though they were never actually scheduled.
+        base_scheduled = base_plan.total_credits() + base_plan.prior_credits()
+        effective_gap = max(0, degree_total - base_scheduled - transfer_credits)
+
         if effective_gap <= 0:
+            # Even if no filler is needed, the base plan may have scheduled more
+            # than degree_total credits (prereq chains pulling in extra courses).
+            # Apply the same trim logic to cap the plan at degree_total.
+            base_total = base_plan.total_credits()
+            if base_total > degree_total:
+                _excess = base_total - degree_total
+                _plan_codes = {c.code for s in base_plan.semesters for c in s.courses}
+                _resolved_b = self._resolve_major(major_name) if major_name else []
+                # Protect only explicitly REQUIRED courses (COURSE nodes).
+                # Pool options (CHOOSE_CREDITS) that end up orphaned CAN be trimmed.
+                _direct_codes_b: set = set()
+                for _mr in _resolved_b:
+                    _rr = _mr.get("raw", _mr).get("requirement", {})
+                    def _rdc_req_only(r):
+                        rc = set()
+                        if r.get("type") == "COURSE":
+                            c = r.get("course_code","")
+                            if c: rc.add(c)
+                        # Deliberately skip CHOOSE_CREDITS - pool options can be trimmed
+                        for ch in r.get("children",[]): rc |= _rdc_req_only(ch)
+                        return rc
+                    _direct_codes_b |= _rdc_req_only(_rr)
+                from coursemap.domain.prerequisite import (
+                    CoursePrerequisite as _CPb, AndExpression as _ANDb, OrExpression as _ORb
+                )
+                _pn_b: set = set()
+                for _code in _plan_codes:
+                    _cc = self.courses.get(_code)
+                    if _cc and _cc.prerequisites:
+                        _stk = [_cc.prerequisites]
+                        while _stk:
+                            _n = _stk.pop()
+                            if isinstance(_n, _CPb) and _n.code in _plan_codes:
+                                _pn_b.add(_n.code)
+                            elif isinstance(_n, (_ANDb, _ORb)):
+                                _stk.extend(_n.children)
+                _removable_b = sorted(
+                    [c for c in _plan_codes if c not in _direct_codes_b and c not in _pn_b],
+                    key=lambda c: self.courses[c].credits if c in self.courses else 0
+                )
+                _removed_b: set = set()
+                for _rc in _removable_b:
+                    if _excess <= 0:
+                        break
+                    _cr = self.courses[_rc].credits if _rc in self.courses else 0
+                    if 0 < _cr <= _excess + 14:
+                        _removed_b.add(_rc)
+                        _excess -= _cr
+                if _removed_b:
+                    from coursemap.domain.plan import SemesterPlan as _SP2, DegreePlan as _DP2
+                    _new_sems = tuple(
+                        _SP2(year=s.year, semester=s.semester,
+                             courses=tuple(c for c in s.courses if c.code not in _removed_b))
+                        for s in base_plan.semesters
+                        if any(c.code not in _removed_b for c in s.courses)
+                    )
+                    base_plan = _DP2(semesters=_new_sems,
+                                     prior_completed=base_plan.prior_completed,
+                                     transfer_credits=base_plan.transfer_credits)
             if transfer_credits > 0:
                 base_plan.transfer_credits = transfer_credits
             return base_plan, []
@@ -642,10 +705,6 @@ class PlannerService:
         )
 
         def _is_schedulable(course) -> bool:
-            # Must have at least one offering in the requested campus/mode.
-            # When no_summer=True, the course must be available in S1 or S2
-            # (not SS-only), otherwise it can never be scheduled and will
-            # cause an infinite loop in the generator.
             offerings = [o for o in course.offerings if o.campus == campus and o.mode == mode]
             if not offerings:
                 return False
@@ -654,63 +713,67 @@ class PlannerService:
             return True
 
         def _level_ok(course) -> bool:
-            # For undergrad fill: cap at level 300 or max_level+100, whichever is lower.
-            # Also exclude postgrad-only courses (level 700+).
+            # Exclude zero-credit courses (practicum placements) - they can't
+            # satisfy credit requirements and cause the filler loop to spin.
+            if course.credits <= 0:
+                return False
             return course.level <= 300 and course.level <= max_level + 100
 
-        # Pass 1: same-subject-prefix candidates (ordered: preferred > prefix rank > level > code)
-        same_prefix: list[tuple] = []
+        # Detect prerequisite-chain courses: needed to satisfy prerequisites
+        # of major courses but not in the major requirement tree themselves.
+        # These get higher priority than random electives in filler selection.
+        prereq_chain_codes: set[str] = set()
+        def _collect_prereqs_for_filler(code: str, visited: set[str]) -> None:
+            if code in visited or code not in self.courses:
+                return
+            visited.add(code)
+            from coursemap.domain.prerequisite import CoursePrerequisite, AndExpression, OrExpression
+            prereq = self.courses[code].prerequisites
+            if prereq is None:
+                return
+            stack = [prereq]
+            while stack:
+                node = stack.pop()
+                if isinstance(node, CoursePrerequisite):
+                    child = node.code
+                    if child in self.courses and child not in excluded_all:
+                        prereq_chain_codes.add(child)
+                        _collect_prereqs_for_filler(child, visited)
+                elif isinstance(node, (AndExpression, OrExpression)):
+                    stack.extend(node.children)
+
+        for code in list(planned_codes) + list(major_pool_codes):
+            _collect_prereqs_for_filler(code, set())
+
+        # Priority tiers for filler:
+        #   0 = student explicitly preferred
+        #   1 = prerequisite chain courses (pedagogically necessary)
+        #   2 = same subject prefix (most coherent electives)
+        #   3 = full undergrad catalogue (open electives)
+        def _filler_tier(code: str) -> int:
+            if code in preferred_electives: return 0
+            if code in prereq_chain_codes: return 1
+            if code[:3] in prefix_rank: return 2
+            return 3
+
+        all_candidates: list[tuple] = []
         for code, course in self.courses.items():
-            if code in excluded_all:
-                continue
-            if not _is_schedulable(course):
-                continue
-            if not _level_ok(course):
-                continue
-            pfx = code[:3]
-            if pfx in prefix_rank:
-                prefer = 0 if code in preferred_electives else 1
-                same_prefix.append((prefer, prefix_rank[pfx], course.level, code))
-        same_prefix.sort()
+            if code in excluded_all: continue
+            if not _is_schedulable(course): continue
+            if not _level_ok(course): continue
+            tier = _filler_tier(code)
+            sub_rank = prefix_rank.get(code[:3], 99)
+            all_candidates.append((tier, sub_rank, course.level, code))
+        all_candidates.sort()
 
         filler_codes: list[str] = []
         running = 0
-        for _, _, _, code in same_prefix:
-            if running >= effective_gap:
-                break
+        for _, _, _, code in all_candidates:
+            if running >= effective_gap: break
             cr = self.courses[code].credits
-            if running + cr > effective_gap + 14:
-                continue
+            if running + cr > effective_gap + 14: continue
             filler_codes.append(code)
             running += cr
-
-        # Pass 2: broaden to full undergrad catalogue when same-prefix pool is exhausted.
-        if running < effective_gap:
-            selected_set = set(filler_codes)
-            # Candidates that were not already in pass 1 (different prefix or not preferred).
-            # Ordered: preferred > level > code (no prefix bias - open elective).
-            broad: list[tuple] = []
-            for code, course in self.courses.items():
-                if code in excluded_all or code in selected_set:
-                    continue
-                if not _is_schedulable(course):
-                    continue
-                if not _level_ok(course):
-                    continue
-                pfx = code[:3]
-                if pfx in prefix_rank:
-                    continue  # already considered in pass 1
-                prefer = 0 if code in preferred_electives else 1
-                broad.append((prefer, course.level, code))
-            broad.sort()
-            for _, _, code in broad:
-                if running >= effective_gap:
-                    break
-                cr = self.courses[code].credits
-                if running + cr > effective_gap + 14:
-                    continue
-                filler_codes.append(code)
-                running += cr
 
         if not filler_codes:
             if transfer_credits > 0:
@@ -806,12 +869,150 @@ class PlannerService:
         try:
             filled_plan = search.search()
         except ValueError:
-            # Filling failed - return the original plan with the filler list.
+            # Filling failed. If the shortfall is significant (the base plan is
+            # substantially under the degree target), raise ValueError so the caller
+            # can try a different campus/mode combination. This prevents the batch
+            # planner from reporting a 225/360cr plan as a "result" for a major that
+            # is simply not completable via the requested campus/mode.
+            base_total_check = base_plan.total_credits() + base_plan.prior_credits()
+            shortfall = degree_total - base_total_check - transfer_credits
+            if shortfall > 15:
+                raise ValueError(
+                    f"Cannot complete '{major_name or 'degree'}' to {degree_total}cr "
+                    f"via {campus}/{mode}: only {base_total_check}cr schedulable "
+                    f"({shortfall}cr short). Try a different campus or delivery mode."
+                )
             if transfer_credits > 0:
                 base_plan.transfer_credits = transfer_credits
             return base_plan, filler_codes
 
         self.last_plan_stats = search.best_generator_stats
+
+        # Post-process: trim to degree_total if the second pass over-scheduled.
+        # PlanGenerator schedules everything in the working set; the prereq
+        # expansion and pool selection may push the total above degree_total.
+        # Remove excess courses (prefer removing non-preferred electives first).
+        filled_total = sum(
+            sum(c.credits for c in s.courses) for s in filled_plan.semesters
+        )
+        if filled_total > degree_total:
+            excess = filled_total - degree_total
+            filler_set = set(filler_codes)
+
+            # Only trim FILLER codes (never major tree or prereq-chain courses).
+            # Remove from the end of filler_codes (last-selected = lowest priority).
+            # Never remove a course that is a direct prerequisite of another
+            # course remaining in the plan.
+            plan_codes = {c.code for s in filled_plan.semesters for c in s.courses}
+            prereqs_needed: set[str] = set()
+            from coursemap.domain.prerequisite import (
+                CoursePrerequisite as _CP2,
+                AndExpression as _AND2,
+                OrExpression as _OR2,
+            )
+            for s in filled_plan.semesters:
+                for c in s.courses:
+                    if c.prerequisites is None:
+                        continue
+                    stack = [c.prerequisites]
+                    while stack:
+                        n = stack.pop()
+                        if isinstance(n, _CP2) and n.code in plan_codes:
+                            prereqs_needed.add(n.code)
+                        elif isinstance(n, (_AND2, _OR2)):
+                            stack.extend(n.children)
+
+            # Protect only explicitly REQUIRED courses (COURSE nodes), not pool options.
+            # Pool options that end up orphaned (nobody depends on them) can be trimmed.
+            major_tree_codes: set[str] = set()
+            def _collect_required_codes(req_dict: dict) -> set:
+                codes: set = set()
+                t = req_dict.get("type", "")
+                if t == "COURSE":
+                    c = req_dict.get("course_code", "")
+                    if c: codes.add(c)
+                # Deliberately skip CHOOSE_CREDITS pool codes - orphaned pool
+                # selections can be trimmed to hit the degree credit target.
+                for ch in req_dict.get("children", []):
+                    codes |= _collect_required_codes(ch)
+                return codes
+            for _pm in parsed_majors_filled:
+                _raw_req = _pm.get("raw", {}).get("requirement", {})
+                major_tree_codes |= _collect_required_codes(_raw_req)
+                # Also include filler_codes themselves (they're intentionally selected)
+                major_tree_codes |= filler_set
+
+            removable = [
+                code for code in reversed(filler_codes)
+                if code not in prereqs_needed
+                and code not in preferred_electives
+            ]
+
+            # Phase 2: if still over-budget, also remove orphaned prereq-extras
+            # (courses not in major tree, not needed by anyone as a prereq).
+            if excess > 0:
+                removable_extras = [
+                    code for code in sorted(plan_codes)
+                    if code not in major_tree_codes
+                    and code not in prereqs_needed
+                    and code not in filler_set
+                    and code not in preferred_electives
+                    and code not in removable
+                ]
+                removable = removable + removable_extras
+
+            removed: set[str] = set()
+            for code in removable:
+                if excess <= 0:
+                    break
+                cr = self.courses[code].credits if code in self.courses else 0
+                if cr > 0 and cr <= excess + 14:
+                    removed.add(code)
+                    excess -= cr
+                    # After removing this course, some of its prereqs may now be
+                    # orphaned - add them to the removable list if they're not
+                    # needed by any remaining course.
+                    still_in_plan = plan_codes - removed
+                    new_needed: set[str] = set()
+                    for _c in still_in_plan:
+                        _course = self.courses.get(_c)
+                        if _course and _course.prerequisites:
+                            _stk = [_course.prerequisites]
+                            while _stk:
+                                _n = _stk.pop()
+                                if isinstance(_n, _CP2) and _n.code in still_in_plan:
+                                    new_needed.add(_n.code)
+                                elif isinstance(_n, (_AND2, _OR2)):
+                                    _stk.extend(_n.children)
+                    newly_orphaned = [
+                        c for c in still_in_plan
+                        if c not in major_tree_codes
+                        and c not in new_needed
+                        and c not in removed
+                        and c not in preferred_electives
+                        and c not in removable
+                    ]
+                    if newly_orphaned:
+                        removable = removable + newly_orphaned
+                        prereqs_needed = new_needed
+
+            if removed:
+                from coursemap.domain.plan import SemesterPlan
+                new_sems = []
+                for sem in filled_plan.semesters:
+                    new_courses = [c for c in sem.courses if c.code not in removed]
+                    if new_courses:
+                        new_sems.append(SemesterPlan(
+                            year=sem.year,
+                            semester=sem.semester,
+                            courses=tuple(new_courses),
+                        ))
+                filled_plan = type(filled_plan)(
+                    semesters=tuple(new_sems),
+                    prior_completed=filled_plan.prior_completed,
+                    transfer_credits=filled_plan.transfer_credits,
+                )
+                filler_codes = [c for c in filler_codes if c not in removed]
 
         if transfer_credits > 0:
             filled_plan.transfer_credits = transfer_credits
@@ -930,6 +1131,70 @@ class PlannerService:
             and not any(o.campus == campus and o.mode == mode for o in self.courses[code].offerings)
         )
 
+    # ------------------------------------------------------------------
+    # Elective filler - shared by both single and double major fill logic
+    # ------------------------------------------------------------------
+
+    def _select_filler_codes(
+        self,
+        planned_codes: set[str],
+        prior_codes: set[str],
+        effective_gap: int,
+        campus: str,
+        mode: str,
+        no_summer: bool,
+        preferred_electives: frozenset,
+        excluded_courses: frozenset,
+        extra_exclude: set[str] | None = None,
+    ) -> list[str]:
+        """
+        Delegate elective selection to ElectiveFiller.
+
+        Returns a list of course codes whose total credits <= effective_gap.
+        Uses the same tier-ranked strategy (preferred > same-prefix > adjacent)
+        for both single and double major plans - eliminating the duplication
+        between generate_filled_plan and generate_filled_double_major_plan.
+        """
+        exclude_all = planned_codes | prior_codes | excluded_courses | (extra_exclude or set())
+        available = frozenset(planned_codes | prior_codes)
+        # Max level cap: don't recommend courses 2+ levels above what's in the plan
+        max_level = max(
+            (self.courses[c].level for c in planned_codes if c in self.courses),
+            default=100,
+        )
+        level_cap = max_level + 200  # generous cap
+
+        filler = ElectiveFiller(self.courses, campus=campus, mode=mode)
+        selected = filler.select_to_fill(
+            seed_codes=list(planned_codes),
+            completed=available,
+            budget_credits=effective_gap,
+            exclude=frozenset(exclude_all),
+            prefer=frozenset(preferred_electives),
+            level_cap=level_cap,
+        )
+
+        # Pass 2 (broadened): if Pass 1 didn't fill the budget, try any undergrad
+        # DIS course in the catalogue. This is essential for narrow majors (e.g.
+        # language degrees) where same-prefix electives are exhausted.
+        selected_cr = sum(self.courses[c].credits for c in selected if c in self.courses)
+        if selected_cr < effective_gap:
+            remaining_budget = effective_gap - selected_cr
+            already_selected = frozenset(selected)
+            broader_filler = ElectiveFiller(self.courses, campus=campus, mode=mode)
+            # Use empty seed_codes so no prefix is "top" - all undergrad courses are candidates
+            broader = broader_filler.select_to_fill(
+                seed_codes=[],
+                completed=available | already_selected,
+                budget_credits=remaining_budget,
+                exclude=frozenset(exclude_all) | already_selected,
+                prefer=frozenset(preferred_electives),
+                level_cap=min(level_cap, 400),
+            )
+            selected = selected + broader
+
+        return selected
+
     def generate_filled_double_major_plan(
         self,
         major_name: str,
@@ -958,7 +1223,6 @@ class PlannerService:
 
         Returns (plan, double_info, filler_codes).
         """
-        from collections import Counter as _Counter
         from coursemap.domain.requirement_nodes import (
             AllOfRequirement as _AllOf,
             ChooseCreditsRequirement as _CCR,
@@ -991,14 +1255,70 @@ class PlannerService:
         effective_gap = max(0, gap - transfer_credits)
 
         if effective_gap <= 0:
+            # Even when no filler is needed, prereq expansion may have
+            # pushed the base plan over degree_target. Use the search's
+            # internal trim (via _plan_for_major) if the plan is over.
+            # Since we return base_plan directly here, apply a quick trim.
+            base_total_cr = sum(sum(c.credits for c in s.courses) for s in base_plan.semesters)
+            if base_total_cr > degree_target:
+                excess = base_total_cr - degree_target
+                plan_codes_set = {c.code for s in base_plan.semesters for c in s.courses}
+                from coursemap.domain.prerequisite import (
+                    CoursePrerequisite as _CPd,
+                    AndExpression as _ANDd,
+                    OrExpression as _ORd,
+                )
+                prereqs_needed_d: set[str] = set()
+                for s in base_plan.semesters:
+                    for c in s.courses:
+                        if c.prerequisites is None: continue
+                        stk = [c.prerequisites]
+                        while stk:
+                            n = stk.pop()
+                            if isinstance(n, _CPd) and n.code in plan_codes_set:
+                                prereqs_needed_d.add(n.code)
+                            elif isinstance(n, (_ANDd, _ORd)):
+                                stk.extend(n.children)
+                from coursemap.domain.requirement_utils import collect_course_codes as _ccc2, collect_elective_nodes as _cen3
+                pool_codes_d: set[str] = set()
+                req_codes_d: set[str] = set()
+                for _mn in [major_name, second_major_name]:
+                    _rx = self._resolve_major(_mn)
+                    if not _rx: continue
+                    _rt2 = self._build_major_req_tree(_rx[0])
+                    _all_t = _ccc2(_rt2)
+                    _pool_t = {c for n in _cen3(_rt2) if isinstance(n, _CCR) for c in n.course_codes}
+                    pool_codes_d.update(_pool_t)
+                    req_codes_d.update(_all_t - _pool_t)
+                # Removable: pool courses not in required_codes/always_include
+                removable_d = sorted(
+                    [c for s in base_plan.semesters for c in s.courses
+                     if c.code in pool_codes_d and c.code not in req_codes_d
+                     and c.code not in prereqs_needed_d],
+                    key=lambda c: (-c.level, c.code),
+                )
+                removed_d: set[str] = set()
+                for cand in removable_d:
+                    if excess <= 0: break
+                    if cand.code not in removed_d:
+                        removed_d.add(cand.code)
+                        excess -= cand.credits
+                if removed_d:
+                    from coursemap.domain.plan import SemesterPlan
+                    new_sems = []
+                    for sem in base_plan.semesters:
+                        nc = [c for c in sem.courses if c.code not in removed_d]
+                        if nc:
+                            new_sems.append(SemesterPlan(year=sem.year, semester=sem.semester, courses=tuple(nc)))
+                    base_plan = type(base_plan)(semesters=tuple(new_sems), prior_completed=base_plan.prior_completed, transfer_credits=base_plan.transfer_credits)
             return base_plan, info, []
 
         # --- Step 3: find filler candidates ----------------------------------
-        # Two-pass, SS-aware, pool-exclusion - mirrors generate_filled_plan.
+        # Delegate to _select_filler_codes which uses ElectiveFiller under the hood.
+        # Exclude codes in either major's own elective pools to prevent double-counting.
         planned_codes = {c.code for s in base_plan.semesters for c in s.courses}
         prior_codes   = {c.code for c in base_plan.prior_completed}
 
-        # Exclude codes in either major's own elective pools to prevent overlap.
         first_resolved_tmp  = self._resolve_major(major_name)
         second_resolved_tmp = self._resolve_major(second_major_name)
         dm_pool_codes: set[str] = set()
@@ -1009,59 +1329,18 @@ class PlannerService:
                 if isinstance(_node, _CCR):
                     dm_pool_codes.update(_node.course_codes)
 
-        excluded_all  = planned_codes | prior_codes | excluded_courses | dm_pool_codes
-
-        prefix_counts = _Counter(code[:3] for code in planned_codes)
-        prefix_rank   = {pfx: rank for rank, (pfx, _) in enumerate(prefix_counts.most_common())}
-        max_level = max(
-            (self.courses[c].level for c in planned_codes if c in self.courses),
-            default=100,
+        filler_codes = self._select_filler_codes(
+            planned_codes=planned_codes,
+            prior_codes=prior_codes,
+            effective_gap=effective_gap,
+            campus=campus,
+            mode=mode,
+            no_summer=no_summer,
+            preferred_electives=preferred_electives,
+            excluded_courses=excluded_courses,
+            extra_exclude=(dm_pool_codes & planned_codes),  # only exclude already-planned pool codes
         )
-
-        def _dm_schedulable(course) -> bool:
-            offs = [o for o in course.offerings if o.campus == campus and o.mode == mode]
-            if not offs:
-                return False
-            if no_summer:
-                return any(o.semester in ("S1", "S2") for o in offs)
-            return True
-
-        def _dm_level_ok(course) -> bool:
-            return course.level <= 300 and course.level <= max_level + 100
-
-        # Pass 1: same subject-prefix
-        same_prefix_dm: list[tuple] = []
-        for code, course in self.courses.items():
-            if code in excluded_all or not _dm_schedulable(course) or not _dm_level_ok(course):
-                continue
-            pfx = code[:3]
-            if pfx in prefix_rank:
-                same_prefix_dm.append((0 if code in preferred_electives else 1, prefix_rank[pfx], course.level, code))
-        same_prefix_dm.sort()
-
-        filler_codes: list[str] = []
-        running = 0
-        for _, _, _, code in same_prefix_dm:
-            if running >= effective_gap: break
-            cr = self.courses[code].credits
-            if running + cr > effective_gap + 14: continue
-            filler_codes.append(code); running += cr
-
-        # Pass 2: broaden to full undergrad catalogue when prefix pool runs out
-        if running < effective_gap:
-            selected_set = set(filler_codes)
-            broad_dm: list[tuple] = []
-            for code, course in self.courses.items():
-                if code in excluded_all or code in selected_set: continue
-                if not _dm_schedulable(course) or not _dm_level_ok(course): continue
-                if code[:3] in prefix_rank: continue
-                broad_dm.append((0 if code in preferred_electives else 1, course.level, code))
-            broad_dm.sort()
-            for _, _, code in broad_dm:
-                if running >= effective_gap: break
-                cr = self.courses[code].credits
-                if running + cr > effective_gap + 14: continue
-                filler_codes.append(code); running += cr
+        running = sum(self.courses[c].credits for c in filler_codes if c in self.courses)
 
         if not filler_codes:
             return base_plan, info, []
@@ -1130,6 +1409,16 @@ class PlannerService:
         try:
             filled_plan = search.search()
         except ValueError:
+            # If the shortfall is significant, raise ValueError so callers can
+            # try a different campus/mode (e.g. D/DIS → M/INT).
+            base_scheduled = base_plan.total_credits() + base_plan.prior_credits()
+            shortfall = degree_target - base_scheduled - transfer_credits
+            if shortfall > 15:
+                raise ValueError(
+                    f"Cannot complete double major '{major_name or ''} + {second_major_name or ''}' "
+                    f"to {degree_target}cr via {campus}/{mode}: only {base_scheduled}cr schedulable "
+                    f"({shortfall}cr short). Check that all required courses have {campus}/{mode} offerings."
+                )
             return base_plan, info, filler_codes
 
         self.last_plan_stats = search.best_generator_stats
@@ -1145,6 +1434,61 @@ class PlannerService:
 
         if transfer_credits > 0:
             filled_plan.transfer_credits = transfer_credits
+
+        # Post-process: trim to degree_total if overcrediting from prereq expansion.
+        # Only remove filler codes not needed as direct prerequisites.
+        filled_dm_total = sum(
+            sum(c.credits for c in s.courses) for s in filled_plan.semesters
+        )
+        if filled_dm_total > degree_target:
+            dm_excess = filled_dm_total - degree_target
+            dm_filler_set = set(filler_codes)
+            dm_plan_codes = {c.code for s in filled_plan.semesters for c in s.courses}
+            from coursemap.domain.prerequisite import (
+                CoursePrerequisite as _CP4,
+                AndExpression as _AND4,
+                OrExpression as _OR4,
+            )
+            dm_prereqs_needed: set[str] = set()
+            for s in filled_plan.semesters:
+                for c in s.courses:
+                    if c.prerequisites is None:
+                        continue
+                    stack = [c.prerequisites]
+                    while stack:
+                        n = stack.pop()
+                        if isinstance(n, _CP4) and n.code in dm_plan_codes:
+                            dm_prereqs_needed.add(n.code)
+                        elif isinstance(n, (_AND4, _OR4)):
+                            stack.extend(n.children)
+            dm_removable = [
+                code for code in reversed(filler_codes)
+                if code not in dm_prereqs_needed
+                and code not in preferred_electives
+            ]
+            dm_removed: set[str] = set()
+            for code in dm_removable:
+                if dm_excess <= 0:
+                    break
+                cr = self.courses[code].credits if code in self.courses else 0
+                if cr > 0 and cr <= dm_excess + 14:
+                    dm_removed.add(code)
+                    dm_excess -= cr
+            if dm_removed:
+                from coursemap.domain.plan import SemesterPlan
+                new_sems = []
+                for sem in filled_plan.semesters:
+                    nc = [c for c in sem.courses if c.code not in dm_removed]
+                    if nc:
+                        new_sems.append(SemesterPlan(
+                            year=sem.year, semester=sem.semester, courses=tuple(nc)
+                        ))
+                filled_plan = type(filled_plan)(
+                    semesters=tuple(new_sems),
+                    prior_completed=filled_plan.prior_completed,
+                    transfer_credits=filled_plan.transfer_credits,
+                )
+                filler_codes = [c for c in filler_codes if c not in dm_removed]
 
         return filled_plan, info, filler_codes
 
