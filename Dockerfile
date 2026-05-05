@@ -19,16 +19,24 @@ RUN pip install --no-cache-dir -e ".[api]"
 COPY coursemap/ ./coursemap/
 COPY datasets/   ./datasets/
 
+# Create the data directory for SQLite persistence.
+# Mount this as a volume in production so plan data survives restarts.
+RUN mkdir -p /app/data
+
 # Non-root user for security
 RUN useradd -m -u 1000 coursemap && chown -R coursemap:coursemap /app
 USER coursemap
 
 EXPOSE 8080
 
-# WORKERS defaults to 2; override via env var for higher-traffic deployments
-ENV WORKERS=2
+# IMPORTANT: 1 worker only while using SQLite.
+# For multi-worker deployments, switch COURSEMAP_DB_PATH to a PostgreSQL URL
+# and update plan_store.py to use asyncpg/SQLAlchemy.
+ENV WORKERS=1
 
-# Healthcheck so orchestrators know when the app is ready
+# Where the SQLite plan store lives - override with a mounted volume path.
+ENV COURSEMAP_DB_PATH=/app/data/plans.db
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
   CMD curl -f http://localhost:8080/api || exit 1
 
