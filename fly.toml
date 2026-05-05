@@ -1,6 +1,6 @@
 # fly.toml - Fly.io deployment config for coursemap
 # Deploy with: fly launch  (first time)  or  fly deploy  (updates)
-# Free tier: 3 shared-CPU VMs + 3GB persistent volume - more than enough.
+# Free tier: 3 shared-CPU VMs + 3GB persistent volume
 # See: https://fly.io/docs/getting-started/
 
 app = "coursemap"              # change to your app name after `fly launch`
@@ -10,16 +10,18 @@ primary_region = "syd"        # Sydney - closest to NZ students
   dockerfile = "Dockerfile"
 
 [env]
-  PORT            = "8080"
+  PORT             = "8080"
   PYTHONUNBUFFERED = "1"
+  WORKERS          = "1"          # Must be 1 - SQLite doesn't support multi-process writes
+  COURSEMAP_DB_PATH = "/data/plans.db"  # Lives on the persistent volume below
   # ALLOWED_ORIGINS = "https://your-domain.com"   # uncomment + set for production
 
 [http_service]
   internal_port        = 8080
   force_https          = true
-  auto_stop_machines   = "stop"     # scales to zero when idle (saves money)
+  auto_stop_machines   = "stop"    # scales to zero when idle (saves money)
   auto_start_machines  = true
-  min_machines_running = 0          # set to 1 if cold-start latency matters
+  min_machines_running = 0         # set to 1 if cold-start latency matters
 
   [http_service.concurrency]
     type       = "connections"
@@ -27,8 +29,15 @@ primary_region = "syd"        # Sydney - closest to NZ students
     soft_limit = 80
 
 [[vm]]
-  size   = "shared-cpu-1x"    # free tier
+  size   = "shared-cpu-1x"   # free tier
   memory = "512mb"
+
+# Persistent volume for the SQLite plan store.
+# Create it once with: fly volumes create coursemap_data --region syd --size 1
+# Plans stored here survive deploys, restarts, and machine replacements.
+[[mounts]]
+  source      = "coursemap_data"
+  destination = "/data"
 
 [checks]
   [checks.health]
