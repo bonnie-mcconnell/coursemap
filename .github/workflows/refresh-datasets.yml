@@ -1,0 +1,147 @@
+name: Monthly dataset refresh
+
+on:
+  schedule:
+    # 2am NZT on the 1st of each month (NZT = UTC+12/13)
+    - cron: '0 13 1 * *'
+  workflow_dispatch:
+    inputs:
+      skip_prerequisites:
+        description: 'Skip prerequisite scrape (faster, use if site is throttling)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[api,ingestion]"
+
+      - name: Backup existing datasets
+        run: |
+          cp datasets/courses.json        datasets/courses.json.bak
+          cp datasets/majors.json         datasets/majors.json.bak
+          cp datasets/qualifications.json datasets/qualifications.json.bak
+          cp datasets/specialisations.json datasets/specialisations.json.bak
+
+      - name: Fetch qualifications
+        run: python -m coursemap.ingestion.fetch_qualifications
+        timeout-minutes: 5
+
+      - name: Fetch courses
+        run: python -m coursemap.ingestion.build_dataset
+        timeout-minutes: 15
+
+      - name: Build majors dataset
+        run: python -m coursemap.ingestion.build_majors_dataset
+        timeout-minutes: 10
+
+      - name: Backfill elective credits
+        run: python -m coursemap.ingestion.backfill_elective_credits
+        timeout-minutes: 10
+
+      - name: Scrape prerequisites (HTML-aware AND/OR parser)
+        if: ${{ !inputs.skip_prerequisites }}
+        run: python -m coursemap.ingestion.refresh_prerequisites
+        timeout-minutes: 30
+
+      - name: Validate dataset
+        run: python -c "
+          import sys, json
+          sys.path.insert(0, '.')
+          from coursemap.ingestion.dataset_loader import load_courses, load_majors
+          from coursemap.validation.dataset_validator import validate_dataset
+          courses = load_courses()
+          majors  = load_majors()
+          result  = validate_dataset(courses, majors, raise_on_error=False)
+          print(f'Courses: {len(courses)}, Majors: {len(majors)}')
+          print(f'Errors: {len(result.errors)}, Warnings: {len(result.warnings)}')
+          if result.errors:
+              print('ERRORS:')
+              for e in result.errors[:20]:
+                  print(' ', e)
+              sys.exit(1)
+          print('Validation passed.')
+        "
+
+      - name: Run test suite
+        run: pytest tests/ -x -q --tb=short
+
+      - name: Data quality report
+        run: python -c "
+          import sys, json
+          sys.path.insert(0, '.')
+          from coursemap.ingestion.dataset_loader import load_courses
+          from coursemap.ingestion.freshness import freshness_report
+          courses = load_courses()
+          with_prereqs = sum(1 for c in courses.values() if c.prerequisites is not None)
+          no_offerings = sum(1 for c in courses.values() if not c.offerings)
+          fr = freshness_report()
+          print(f'Scrape date: {fr.get(\"scrape_date\", \"unknown\")}')
+          print(f'Courses with prerequisites: {with_prereqs}/{len(courses)} ({100*with_prereqs//len(courses)}%)')
+          print(f'Courses with no offerings: {no_offerings}')
+        "
+
+      - name: Remove backups
+        if: success()
+        run: rm -f datasets/*.bak
+
+      - name: Restore backups on failure
+        if: failure()
+        run: |
+          echo "Restoring backups due to failure..."
+          mv datasets/courses.json.bak        datasets/courses.json        || true
+          mv datasets/majors.json.bak         datasets/majors.json         || true
+          mv datasets/qualifications.json.bak datasets/qualifications.json || true
+          mv datasets/specialisations.json.bak datasets/specialisations.json || true
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git diff --stat datasets/
+          if git diff --quiet datasets/; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No dataset changes detected."
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create pull request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(data): monthly dataset refresh"
+          title: "Monthly dataset refresh - ${{ github.run_id }}"
+          body: |
+            ## Automated monthly dataset refresh
+
+            This PR was created automatically by the `refresh-datasets` workflow.
+
+            ### What changed
+            Run `git diff HEAD datasets/` to see the full diff.
+
+            ### Before merging
+            - [ ] Check the validation output in the Actions log
+            - [ ] Spot-check 2–3 majors in the staging deploy
+            - [ ] Confirm prerequisite coverage improved (or stayed the same)
+
+            ### Deploy after merge
+            Push to `main` triggers the Fly.io deploy automatically.
+          branch: "data/monthly-refresh-${{ github.run_number }}"
+          base: main
+          labels: "data,automated"

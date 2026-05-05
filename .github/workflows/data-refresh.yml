@@ -1,0 +1,71 @@
+name: Data Refresh
+
+on:
+  # Manual trigger with optional flags
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (repair + validate only, no scrape)'
+        required: false
+        default: 'false'
+        type: boolean
+      courses_only:
+        description: 'Only re-scrape courses (skip majors)'
+        required: false
+        default: 'false'
+        type: boolean
+
+  # Scheduled: start of each Massey semester
+  schedule:
+    - cron: '0 0 1 2 *'   # Feb 1 – S1
+    - cron: '0 0 1 7 *'   # Jul 1 – S2
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run data refresh
+        run: |
+          ARGS=""
+          [ "${{ inputs.dry_run }}" = "true" ]     && ARGS="$ARGS --dry-run"
+          [ "${{ inputs.courses_only }}" = "true" ] && ARGS="$ARGS --courses-only"
+          ./scripts/refresh_data.sh $ARGS
+
+      - name: Run tests
+        run: python -m pytest tests/ -q
+
+      - name: Create Pull Request
+        if: ${{ inputs.dry_run != 'true' }}
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'data: refresh datasets (${{ github.event.schedule || ''manual'' }})'
+          title: '📚 Data refresh - ${{ github.run_started_at }}'
+          body: |
+            Automated data refresh from Massey University catalogue.
+
+            **Changes:**
+            - Re-scraped course offerings and prerequisites
+            - Re-scraped major requirement structures
+            - Applied repair_dataset.py quality fixes
+
+            **Review checklist:**
+            - [ ] Validation errors: 0
+            - [ ] Test suite: all passing
+            - [ ] Spot-check CS BSc pool sizes (should be 20+ per pool)
+            - [ ] Spot-check BHSc Mental Health plan generates 360cr
+          branch: data-refresh/${{ github.run_id }}
+          delete-branch: true

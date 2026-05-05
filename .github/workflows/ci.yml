@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[all]"
+
+      - name: Lint (ruff, optional - doesn't fail build)
+        run: pip install ruff && ruff check coursemap/ || true
+
+      - name: Tests
+        run: pytest tests/ -x -q --tb=short --cov=coursemap --cov-report=term-missing
+
+      - name: Validate bundled dataset
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from coursemap.ingestion.dataset_loader import load_courses, load_majors
+          from coursemap.validation.dataset_validator import validate_dataset
+          courses = load_courses()
+          majors  = load_majors()
+          result  = validate_dataset(courses, majors, raise_on_error=False)
+          print(f'Courses: {len(courses)}, Majors: {len(majors)}')
+          if result.errors:
+              for e in result.errors[:10]:
+                  print('ERROR:', e)
+              sys.exit(1)
+          print('Dataset OK.')
+          "
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t coursemap:ci .
+
+      - name: Smoke test Docker image
+        run: |
+          docker run -d --name cm-test -p 8080:8080 coursemap:ci
+          # Wait for startup
+          for i in $(seq 1 15); do
+            curl -sf http://localhost:8080/api && break
+            sleep 2
+          done
+          curl -sf http://localhost:8080/api | python3 -c "import sys,json; d=json.load(sys.stdin); assert 'version' in d, 'Missing version'"
+          curl -sf "http://localhost:8080/api/majors?limit=1" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['count']>0, 'No majors'"
+          docker stop cm-test
