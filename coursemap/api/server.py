@@ -1,6 +1,9 @@
 from __future__ import annotations
+import hashlib
+import json
 import os
 import re
+import threading
 
 import logging
 from datetime import date as _date
@@ -12,7 +15,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -24,10 +27,19 @@ from coursemap.ingestion.freshness import freshness_report
 from coursemap.services.planner_service import PlannerService
 from coursemap.validation.dataset_validator import validate_dataset
 from coursemap.export.ical import plan_to_ical
+from coursemap.api.plan_store import plan_store
 
 logger = logging.getLogger(__name__)
 
 _UI_HTML = (Path(__file__).parent / "ui.html").read_text(encoding="utf-8")
+
+
+def _plan_cache_key(req: "PlanRequest") -> str:
+    """Return a stable 16-char hex key for a plan request (excludes seed field)."""
+    d = req.model_dump()
+    d.pop("seed", None)  # seed is metadata, not part of the plan identity
+    payload = json.dumps(d, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 # ---------------------------------------------------------------------------
 # Rate limiting
@@ -49,7 +61,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="coursemap",
     description="Degree planner API for Massey University.",
-    version="0.4.0",
+    version="2.0.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -114,6 +126,7 @@ class PlanRequest(BaseModel):
     exclude: list[str] = Field(default_factory=list, description="Course codes to never schedule.")
     no_summer: bool = Field(True, description="Skip Summer School semesters.")
     auto_fill: bool = Field(False, description="Auto-fill free-elective gap with subject-area courses.")
+    seed: int | None = Field(None, description="Random seed for deterministic plan generation. Returned in plan meta; use to reproduce a plan exactly.")
 
 
 class SemesterOut(BaseModel):
@@ -124,6 +137,7 @@ class SemesterOut(BaseModel):
 
 
 class PlanOut(BaseModel):
+    plan_id: str = Field("", description="Stable ID for this plan. Use /api/plan/{plan_id} to retrieve it later.")
     meta: dict
     semesters: list[SemesterOut]
     warnings: list[str] = Field(default_factory=list)
@@ -143,18 +157,24 @@ def _course_to_dict(course) -> dict:
         "title":   course.title,
         "credits": course.credits,
         "level":   course.level,
-        "subject": getattr(course, "subject", None),
-        "description": getattr(course, "description", None),
+        "url":     course.url,
+        "description": course.description,
         "offered_semesters": offered_sems,
         "offerings": [
-            {"semester": o.semester, "campus": o.campus, "mode": o.mode}
+            {
+                "semester":      o.semester,
+                "campus":        getattr(o, "campus_code", getattr(o, "campus", "")),
+                "mode":          getattr(o, "delivery_mode", getattr(o, "mode", "")),
+                "location":      getattr(o, "location", None),
+            }
             for o in course.offerings
         ],
-        "prerequisites":             prereq_to_dict(course.prerequisites),
-        "prerequisites_human":       prereq_to_human(course.prerequisites),
-        "prereq_data_available":     course.prerequisites is not None,
-        "prerequisite_expression":   prereq_to_dict(course.prerequisites),
-        "restrictions":              list(getattr(course, "restrictions", None) or []),
+        "prerequisites":           prereq_to_dict(course.prerequisites),
+        "prerequisites_human":     prereq_to_human(course.prerequisites),
+        "prereq_data_available":   course.prerequisites is not None,
+        "prerequisite_expression": prereq_to_dict(course.prerequisites),
+        "restrictions":            list(course.restrictions or []),
+        "corequisites":            list(course.corequisites or []),
     }
 
 
@@ -165,6 +185,7 @@ def _plan_to_out(
     filler_codes: list[str] | None = None,
     double_info: dict | None = None,
     extra_warnings: list[str] | None = None,
+    plan_id: str = "",
 ) -> PlanOut:
     semesters_out = [
         SemesterOut(
@@ -250,6 +271,7 @@ def _plan_to_out(
         meta["double_major"] = dmi_out
 
     return PlanOut(
+        plan_id=plan_id,
         meta=meta,
         semesters=semesters_out,
         warnings=warnings,
@@ -320,11 +342,18 @@ def api_root():
     fr = freshness_report()
     return {
         "name":    "coursemap",
-        "version": "0.6.4",
+        "version": "2.0.0",
         "description": "Massey University degree planner",
         "docs":    "/docs",
         "dataset": fr,
+        "plan_store": plan_store.stats(),
     }
+
+
+@app.get("/api/plan-store/stats", summary="Plan store statistics")
+def plan_store_stats():
+    """Return statistics about the persistent plan store."""
+    return plan_store.stats()
 
 
 @app.get("/api/freshness", summary="Dataset age and staleness report")
@@ -387,7 +416,7 @@ def data_quality_report():
 def list_majors(
     request: Request,
     search: str | None = Query(None, description="Partial name search query."),
-    limit:  int        = Query(50,   ge=1, le=500, description="Max results."),
+    limit:  int        = Query(50, ge=1, le=500, description="Max results."),
 ):
     svc = _svc()
     majors = svc.majors
@@ -434,29 +463,49 @@ def resolve_major(name: str = Query(..., description="Major name (partial match 
 
 @app.get("/api/courses", summary="Browse course catalogue")
 def list_courses(
-    search: str | None = Query(None, description="Title keyword search."),
-    level:  int | None = Query(None, description="Filter by level (100, 200, …)."),
-    campus: str | None = Query(None, description="Filter by campus code."),
-    mode:   str | None = Query(None, description="Filter by delivery mode."),
-    limit:  int        = Query(50, ge=1, le=3000, description="Max results."),
+    search: str | None = Query(None, description="Search by title or course code (keywords)."),
+    level:  int | None = Query(None, description="Filter by level (100, 200, 300, 400, 700, 800, 900)."),
+    campus: str | None = Query(None, description="Filter by campus code (D, M, A, W)."),
+    mode:   str | None = Query(None, description="Filter by delivery mode (DIS, INT, BLK)."),
+    limit:  int        = Query(150, ge=1, le=3000, description="Max results to return."),
 ):
     courses = list(_courses().values())
 
     if search:
         words = search.strip().lower().split()
-        courses = [c for c in courses if all(w in c.title.lower() for w in words)]
-    if level is not None:
-        courses = [c for c in courses if c.level == level]
-    if campus:
-        courses = [c for c in courses if any(o.campus == campus for o in c.offerings)]
-    if mode:
-        courses = [c for c in courses if any(o.mode == mode for o in c.offerings)]
+        def _matches(c) -> bool:
+            haystack = f"{c.code} {c.title}".lower()
+            return all(w in haystack for w in words)
+        courses = [c for c in courses if _matches(c)]
 
+    if level is not None:
+        # Allow 700 to match 700–799, etc.
+        if level >= 100:
+            courses = [c for c in courses if (c.level // 100) * 100 == (level // 100) * 100]
+        else:
+            courses = [c for c in courses if c.level == level]
+
+    if campus:
+        # campus_code is the attribute on Offering; campus is the human label
+        courses = [c for c in courses if any(
+            getattr(o, "campus_code", getattr(o, "campus", "")) == campus
+            for o in c.offerings
+        )]
+
+    if mode:
+        courses = [c for c in courses if any(
+            getattr(o, "delivery_mode", getattr(o, "mode", "")) == mode
+            for o in c.offerings
+        )]
+
+    # Only return courses with at least one offering so the modal is useful
     courses = [c for c in courses if c.offerings]
     courses.sort(key=lambda c: (c.level, c.code))
 
+    total = len(courses)
     return {
-        "count":   len(courses),
+        "count":   total,
+        "showing": min(total, limit),
         "courses": [_course_to_dict(c) for c in courses[:limit]],
     }
 
@@ -658,12 +707,139 @@ def generate_plan(request: Request, req: PlanRequest):
                 f"Unknown course code(s) in '{label}': {', '.join(unknown)}. These will be ignored."
             )
 
+    # Compute cache key - deterministic share ID
+    plan_key = _plan_cache_key(req)
+
+    # Return cached plan if available (makes shared links deterministic)
+    cached = plan_store.get(plan_key)
+    if cached is not None:
+        return PlanOut(**cached)
+
     try:
         plan, filler, double_info = _execute_plan(req, svc)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
-    return _plan_to_out(plan, svc, req, filler_codes=filler, double_info=double_info, extra_warnings=unknown_warnings)
+    result = _plan_to_out(
+        plan, svc, req,
+        filler_codes=filler,
+        double_info=double_info,
+        extra_warnings=unknown_warnings,
+        plan_id=plan_key,
+    )
+    # Persist to SQLite for future retrieval via plan_id
+    plan_store.put(plan_key, req.model_dump(), result.model_dump())
+    return result
+
+
+@app.get("/api/plan/{plan_id}", response_model=PlanOut, summary="Retrieve a previously generated plan by ID")
+def get_plan(plan_id: str):
+    """
+    Retrieve a cached plan by its plan_id.
+    plan_id values are returned in POST /api/plan responses and encoded in share links.
+    Plans are held in memory - they survive server restarts only if the same parameters
+    are re-submitted (which will regenerate and re-cache the same plan).
+    """
+    cached = plan_store.get(plan_id)
+    if cached is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Plan not found. Plans persist across restarts. "
+                "If this is an old link, re-submit the original parameters."
+            ),
+        )
+    return PlanOut(**cached)
+
+
+@app.post("/api/plan/stream", summary="Generate a plan with SSE progress events")
+@limiter.limit("30/minute")
+def generate_plan_stream(request: Request, req: PlanRequest):
+    """
+    Server-Sent Events (SSE) version of POST /api/plan.
+
+    Emits a sequence of progress events so the UI can show a progress bar
+    rather than a blank spinner. Events are newline-delimited JSON lines
+    prefixed with 'data: '.
+
+    Event types:
+      {"type": "progress", "step": "resolving",   "pct": 10, "msg": "Resolving major…"}
+      {"type": "progress", "step": "generating",  "pct": 40, "msg": "Generating plan…"}
+      {"type": "progress", "step": "filling",     "pct": 70, "msg": "Filling electives…"}
+      {"type": "progress", "step": "caching",     "pct": 90, "msg": "Saving plan…"}
+      {"type": "done",     "plan_id": "…",  "plan": { full PlanOut dict }}
+      {"type": "error",    "detail": "…"}
+
+    The 'done' event contains the complete plan - clients should use that
+    rather than making a second request.
+    """
+    import json as _json
+
+    svc = _svc()
+    catalogue = _courses()
+
+    unknown_warnings: list[str] = []
+    for label, codes in [("completed", req.completed), ("prefer", req.prefer), ("exclude", req.exclude)]:
+        unknown = [c for c in codes if c not in catalogue]
+        if unknown:
+            unknown_warnings.append(
+                f"Unknown course code(s) in '{label}': {', '.join(unknown)}. These will be ignored."
+            )
+
+    plan_key = _plan_cache_key(req)
+
+    def _event(data: dict) -> str:
+        return f"data: {_json.dumps(data)}\n\n"
+
+    def _stream():
+        # Step 1 - check cache
+        cached = plan_store.get(plan_key)
+        if cached is not None:
+            yield _event({"type": "progress", "step": "cached", "pct": 95, "msg": "Loading saved plan…"})
+            yield _event({"type": "done", "plan_id": plan_key, "plan": cached})
+            return
+
+        yield _event({"type": "progress", "step": "resolving", "pct": 10, "msg": "Resolving major…"})
+
+        try:
+            yield _event({"type": "progress", "step": "generating", "pct": 35, "msg": "Building requirement tree…"})
+
+            # Double major takes longer - hint to the UI
+            if req.double_major:
+                yield _event({"type": "progress", "step": "generating", "pct": 50, "msg": "Scheduling double major…"})
+
+            plan, filler, double_info = _execute_plan(req, svc)
+
+        except ValueError as exc:
+            yield _event({"type": "error", "detail": str(exc)})
+            return
+
+        if req.auto_fill and filler:
+            yield _event({"type": "progress", "step": "filling", "pct": 75, "msg": f"Added {len(filler)} elective(s)…"})
+        else:
+            yield _event({"type": "progress", "step": "filling", "pct": 75, "msg": "Finalising plan…"})
+
+        yield _event({"type": "progress", "step": "caching", "pct": 90, "msg": "Saving plan…"})
+
+        result = _plan_to_out(
+            plan, svc, req,
+            filler_codes=filler,
+            double_info=double_info,
+            extra_warnings=unknown_warnings,
+            plan_id=plan_key,
+        )
+        plan_store.put(plan_key, req.model_dump(), result.model_dump())
+
+        yield _event({"type": "done", "plan_id": plan_key, "plan": result.model_dump()})
+
+    return StreamingResponse(
+        _stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable Nginx buffering
+        },
+    )
 
 
 @app.post("/api/plan/ical", summary="Generate a degree plan and return an .ics calendar file")
@@ -671,10 +847,40 @@ def generate_plan(request: Request, req: PlanRequest):
 def generate_plan_ical(request: Request, req: PlanRequest):
     svc = _svc()
 
-    try:
-        plan, _, double_info = _execute_plan(req, svc)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+    # Use the plan cache so the iCal always matches what /api/plan would return
+    # for the same request - important for shared plan links.
+    plan_key = _plan_cache_key(req)
+    cached = plan_store.get(plan_key)
+
+    if cached is not None:
+        # Reconstruct DegreePlan from cached JSON for the iCal exporter
+        from coursemap.domain.plan import DegreePlan, SemesterPlan
+        from coursemap.domain.course import Course, Offering
+        cached_data = cached if isinstance(cached, dict) else json.loads(cached)
+        try:
+            sems = []
+            for s in cached_data.get("semesters", []):
+                course_objs = []
+                for c in s.get("courses", []):
+                    full = svc.courses.get(c["code"])
+                    if full:
+                        course_objs.append(full)
+                sems.append(SemesterPlan(
+                    year=s["year"],
+                    semester=s["semester"],
+                    courses=tuple(course_objs),
+                ))
+            plan = DegreePlan(semesters=tuple(sems))
+            double_info = cached_data.get("double_major_info")
+        except Exception:
+            # Fall through to fresh generation if reconstruction fails
+            cached = None
+
+    if cached is None:
+        try:
+            plan, _, double_info = _execute_plan(req, svc)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
 
     # Resolve label for calendar name
     if double_info:
@@ -709,18 +915,29 @@ def validate():
     }
 
 
+class ValidateRequest(BaseModel):
+    major: str = Field(..., description="Major name to validate against.")
+    plan_id: str | None = Field(None, description="plan_id from a previously generated plan. Takes precedence over course_codes.")
+    course_codes: list[str] = Field(default_factory=list, description="Ordered list of course codes in the plan (semester order). Used when plan_id is absent.")
+    completed: list[str] = Field(default_factory=list, description="Already-completed course codes.")
+    transfer_credits: int = Field(0, ge=0)
+
+
 @app.post("/api/plan/validate", summary="Validate a plan against its degree requirements")
-def validate_plan(req: PlanRequest):
+def validate_plan(req: ValidateRequest):
     """
-    Generate a plan and validate it against the full degree requirement tree.
+    Validate a plan against the full degree requirement tree.
+
+    Accepts either:
+      - a ``plan_id`` (from a previous POST /api/plan response) - loads the
+        cached plan and validates it without regenerating.
+      - a list of ``course_codes`` - validates those codes directly against
+        the degree tree.
+
     Returns a structured checklist of passed/failed requirements.
     """
     svc = _svc()
-
-    try:
-        plan, _, _ = _execute_plan(req, svc)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+    courses = _courses()
 
     from coursemap.validation.engine import DegreeValidator
     from coursemap.domain.requirement_nodes import (
@@ -730,23 +947,50 @@ def validate_plan(req: PlanRequest):
         MinLevelCreditsRequirement, TotalCreditsRequirement,
     )
 
+    # Resolve which course codes to validate
+    if req.plan_id:
+        cached = plan_store.get(req.plan_id)
+        if not cached:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Plan '{req.plan_id}' not found. Re-generate the plan first.",
+            )
+        # Extract all codes from every semester in the cached plan
+        plan_codes: set[str] = set()
+        for sem in cached.get("semesters", []):
+            for c in sem.get("courses", []):
+                plan_codes.add(c.get("code", ""))
+        plan_codes.discard("")
+        prior_codes: set[str] = set(cached.get("meta", {}).get("completed", []))
+        transfer_credits = cached.get("meta", {}).get("transfer_credits", req.transfer_credits)
+    else:
+        plan_codes = set(req.course_codes)
+        prior_codes = set(req.completed)
+        transfer_credits = req.transfer_credits
+
+    all_codes = plan_codes | prior_codes
+
+    # Build degree tree
     try:
         tree = svc.degree_tree_for_major(req.major)
     except (ValueError, AttributeError):
-        raise HTTPException(status_code=404, detail=f"Could not build requirement tree for '{req.major}'.")
+        tree = None
+    if tree is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Could not build requirement tree for '{req.major}'. Check the major name.",
+        )
 
-    validator = DegreeValidator(tree)
-    result = validator.validate(plan)
-
-    # Also build a human-readable checklist from the tree
-    courses = _courses()
-    plan_codes = set(plan.all_course_codes)
+    # Compute credit totals
+    total_credits = sum(courses[c].credits for c in plan_codes if c in courses)
+    prior_credits = sum(courses[c].credits for c in prior_codes if c in courses)
+    grand_total = total_credits + prior_credits + transfer_credits
 
     def node_to_check(node, depth=0) -> dict:
         """Recursively convert a requirement node to a UI-renderable checklist item."""
         if isinstance(node, CourseRequirement):
             c = courses.get(node.course_code)
-            passed = node.course_code in plan_codes
+            passed = node.course_code in all_codes
             return {
                 "type": "course",
                 "code": node.course_code,
@@ -757,94 +1001,95 @@ def validate_plan(req: PlanRequest):
             }
 
         if isinstance(node, TotalCreditsRequirement):
-            total = plan.total_credits() + plan.prior_credits()
             return {
                 "type": "total_credits",
                 "required": node.required_credits,
-                "actual": total,
-                "passed": total >= node.required_credits,
-                "label": f"Total credits: {total} / {node.required_credits}cr required",
+                "actual": grand_total,
+                "passed": grand_total >= node.required_credits,
+                "label": f"Total credits: {grand_total} / {node.required_credits}cr required",
             }
 
         if isinstance(node, MinLevelCreditsRequirement):
-            total = sum(c.credits for s in plan.semesters for c in s.courses if c.level == node.level)
+            actual = sum(
+                courses[c].credits for c in all_codes
+                if c in courses and courses[c].level == node.level
+            )
             return {
                 "type": "min_level",
                 "level": node.level,
                 "required": node.min_credits,
-                "actual": total,
-                "passed": total >= node.min_credits,
-                "label": f"Level {node.level} credits: {total} / {node.min_credits}cr minimum",
+                "actual": actual,
+                "passed": actual >= node.min_credits,
+                "label": f"Level {node.level} credits: {actual} / {node.min_credits}cr minimum",
             }
 
         if isinstance(node, MaxLevelCreditsRequirement):
-            total = sum(c.credits for s in plan.semesters for c in s.courses if c.level == node.level)
+            actual = sum(
+                courses[c].credits for c in all_codes
+                if c in courses and courses[c].level == node.level
+            )
             return {
                 "type": "max_level",
                 "level": node.level,
                 "limit": node.max_credits,
-                "actual": total,
-                "passed": total <= node.max_credits,
-                "label": f"Level {node.level} credits: {total} / max {node.max_credits}cr",
+                "actual": actual,
+                "passed": actual <= node.max_credits,
+                "label": f"Level {node.level} credits: {actual} / max {node.max_credits}cr",
             }
 
         if isinstance(node, ChooseCreditsRequirement):
             allowed = set(node.course_codes)
-            total = sum(c.credits for s in plan.semesters for c in s.courses if c.code in allowed)
-            total += sum(c.credits for c in plan.prior_completed if c.code in allowed)
+            actual = sum(courses[c].credits for c in all_codes if c in courses and c in allowed)
             return {
                 "type": "choose_credits",
                 "required": node.credits,
-                "actual": total,
-                "pool_size": len(node.course_codes),
-                "passed": total >= node.credits or node.credits <= 0,
-                "label": f"Elective pool: {total} / {node.credits}cr from {len(node.course_codes)} courses",
-                "pool_codes": list(node.course_codes)[:20],
+                "actual": actual,
+                "passed": actual >= node.credits,
+                "options": sorted(allowed)[:12],
+                "label": f"Choose {node.credits}cr from {len(allowed)} courses: {actual}cr selected",
             }
 
         if isinstance(node, ChooseNRequirement):
-            chosen = sum(1 for code in node.course_codes if code in plan_codes)
+            allowed = set(node.course_codes)
+            actual_count = sum(1 for c in all_codes if c in allowed)
             return {
                 "type": "choose_n",
                 "required": node.n,
-                "actual": chosen,
-                "passed": chosen >= node.n,
-                "label": f"Choose courses: {chosen} / {node.n} required",
-                "pool_codes": list(node.course_codes)[:20],
+                "actual": actual_count,
+                "passed": actual_count >= node.n,
+                "options": sorted(allowed)[:12],
+                "label": f"Choose {node.n} courses from {len(allowed)}: {actual_count} selected",
             }
 
-        if isinstance(node, (AllOfRequirement, MajorRequirement)):
-            children_nodes = node.children if hasattr(node, "children") else [node.requirement]
-            checks = [node_to_check(c, depth + 1) for c in children_nodes]
-            passed = all(c["passed"] for c in checks)
+        if isinstance(node, (AllOfRequirement, AnyOfRequirement, MajorRequirement)):
+            children = [node_to_check(child, depth + 1) for child in (node.children or [])]
+            passed = all(c["passed"] for c in children) if isinstance(node, AllOfRequirement) else any(c["passed"] for c in children)
+            label = getattr(node, "label", None) or ("All of" if isinstance(node, AllOfRequirement) else "Any of")
             return {
-                "type": "all_of",
+                "type": "group",
+                "operator": "ALL" if isinstance(node, AllOfRequirement) else "ANY",
                 "passed": passed,
-                "label": "All of the following",
-                "children": checks,
+                "label": label,
+                "children": children,
             }
 
-        if isinstance(node, AnyOfRequirement):
-            checks = [node_to_check(c, depth + 1) for c in node.children]
-            passed = any(c["passed"] for c in checks)
-            return {
-                "type": "any_of",
-                "passed": passed,
-                "label": "Any of the following",
-                "children": checks,
-            }
-
-        return {"type": "unknown", "passed": True, "label": str(type(node).__name__)}
+        return {
+            "type": "unknown",
+            "passed": True,
+            "label": str(type(node).__name__),
+            "children": [],
+        }
 
     checklist = node_to_check(tree)
+    overall_passed = checklist.get("passed", False)
 
     return {
-        "passed": result.passed,
-        "errors": result.errors,
+        "major": req.major,
+        "plan_id": req.plan_id,
+        "overall_passed": overall_passed,
+        "total_credits": grand_total,
+        "plan_credits": total_credits,
+        "prior_credits": prior_credits,
+        "transfer_credits": transfer_credits,
         "checklist": checklist,
-        "summary": {
-            "credits_planned": plan.total_credits(),
-            "credits_prior": plan.prior_credits(),
-            "credits_total": plan.total_credits() + plan.prior_credits(),
-        },
     }

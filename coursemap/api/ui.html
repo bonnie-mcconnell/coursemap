@@ -5,9 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230f4c35'/><path d='M8 22 L16 10 L24 22' stroke='%2352b788' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <title>coursemap - Massey Degree Planner</title>
+<!-- Inline theme init to prevent flash of wrong theme before JS loads -->
+<script>
+(function(){
+  var t = localStorage.getItem('cm-theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  if (t === 'light') document.documentElement.setAttribute('data-theme','light');
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+/* ── Theme: dark (default) ── */
 :root {
   --bg:        #0b1012;
   --bg2:       #111719;
@@ -36,6 +44,36 @@
   --mono:      'DM Mono', monospace;
   --sidebar-w: 300px;
   --header-h:  56px;
+}
+
+/* ── Theme: light ── */
+[data-theme="light"] {
+  --bg:        #f5f7f5;
+  --bg2:       #ffffff;
+  --bg3:       #eef1ee;
+  --bg4:       #e4e9e5;
+  --border:    rgba(0,0,0,0.08);
+  --border2:   rgba(0,0,0,0.14);
+  --ink:       #111c16;
+  --ink2:      #3d5447;
+  --ink3:      #6b8878;
+  --green:     #1d7a4f;
+  --green-dk:  #d0ece0;
+  --green-lt:  rgba(29,122,79,0.10);
+  --green-md:  rgba(29,122,79,0.18);
+  --amber:     #a05e00;
+  --amber-lt:  rgba(160,94,0,0.10);
+  --red:       #c0392b;
+  --red-lt:    rgba(192,57,43,0.09);
+  --blue:      #1a5fa8;
+  --blue-lt:   rgba(26,95,168,0.10);
+}
+
+/* Smooth theme transitions (not on first paint) */
+body.theme-ready,
+body.theme-ready * {
+  transition: background-color 0.18s ease, color 0.18s ease,
+              border-color 0.18s ease, box-shadow 0.18s ease !important;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -121,6 +159,18 @@ header{
 }
 
 #freshness-badge.stale .dot{background:var(--amber)}
+
+.theme-toggle{
+  background:none;border:1px solid var(--border2);
+  color:var(--ink2);cursor:pointer;
+  padding:5px 8px;border-radius:var(--r);
+  display:flex;align-items:center;gap:5px;
+  font-size:12px;font-family:var(--sans);
+  transition:background 0.15s,color 0.15s;
+  margin-left:8px;
+}
+.theme-toggle:hover{background:var(--bg4);color:var(--ink)}
+.theme-toggle svg{flex-shrink:0}
 
 .hamburger{
   display:none;
@@ -327,7 +377,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 
 .saved-item{
   display:flex;align-items:center;gap:6px;
-  padding:5px 6px;border-radius:var(--r);
+  padding:6px 6px;border-radius:var(--r);
   cursor:pointer;transition:background 0.1s;
   font-size:12px;
 }
@@ -335,10 +385,11 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .saved-item:hover{background:var(--bg4)}
 .saved-item.active{background:var(--green-lt);color:var(--green)}
 
-.saved-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.saved-meta{font-size:10px;color:var(--ink3);white-space:nowrap;flex-shrink:0}
+.saved-item-left{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.saved-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.saved-meta{font-size:10px;color:var(--ink3);white-space:nowrap}
 
-.saved-actions{display:flex;gap:2px;opacity:0;flex-shrink:0}
+.saved-actions{display:flex;gap:2px;opacity:0;flex-shrink:0;transition:opacity 0.15s}
 .saved-item:hover .saved-actions{opacity:1}
 
 .saved-btn{
@@ -416,6 +467,19 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 
 .loading-text{font-size:13px;color:var(--ink3);animation:pulse 1.5s ease infinite}
 
+/* Generation progress bar */
+.gen-progress-wrap{
+  width:240px;display:flex;flex-direction:column;gap:8px;align-items:center;
+}
+.gen-progress-label{font-size:12px;color:var(--ink3);text-align:center;min-height:16px}
+.gen-progress-track{
+  width:100%;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;
+}
+.gen-progress-fill{
+  height:100%;background:var(--green);border-radius:2px;
+  transition:width 0.4s cubic-bezier(0.4,0,0.2,1);width:0%;
+}
+
 /* Error */
 .error-state{
   flex:1;display:flex;flex-direction:column;
@@ -451,12 +515,16 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 /* Disclaimer */
 .disclaimer{
   background:var(--amber-lt);
-  border:1px solid rgba(232,168,56,0.2);
+  border:1px solid rgba(232,168,56,0.3);
+  border-left:3px solid var(--amber);
   border-radius:var(--r);
-  padding:9px 14px;
-  font-size:12px;color:var(--amber);
-  display:flex;gap:8px;align-items:flex-start;line-height:1.5;
+  padding:10px 14px;
+  font-size:12.5px;color:var(--amber);
+  display:flex;gap:10px;align-items:flex-start;line-height:1.5;
+  margin-bottom:4px;
 }
+.disclaimer .disc-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.disclaimer strong{font-weight:600}
 
 .disclaimer a{color:var(--amber);text-decoration:underline}
 
@@ -933,6 +1001,34 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
   .fab{display:flex !important}
 }
 
+/* Mobile bottom tab bar */
+.mobile-tab-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  height:56px;
+  background:var(--bg2);
+  border-top:1px solid var(--border);
+  display:flex;align-items:stretch;
+  z-index:200;
+  /* Safe area for iPhone home indicator */
+  padding-bottom:env(safe-area-inset-bottom);
+}
+
+.mob-tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;background:none;border:none;cursor:pointer;
+  color:var(--ink3);font-size:10px;font-family:var(--sans);
+  transition:color 0.15s;padding:6px 0;
+}
+
+.mob-tab.active{color:var(--green)}
+.mob-tab svg{flex-shrink:0}
+.mob-tab span{line-height:1}
+
+/* Lift content above tab bar on mobile */
+@media(max-width:900px){
+  body{ padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+}
+
 /* FAB */
 .fab{
   display:none;
@@ -965,6 +1061,20 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     <span class="dot"></span>
     <span id="freshness-text">loading…</span>
   </div>
+  <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" aria-label="Toggle light/dark mode" title="Toggle light/dark mode">
+    <svg id="theme-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+    <span id="theme-label">Light</span>
+  </button>
   <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
       <rect x="2" y="4" width="14" height="1.5" rx="0.75" fill="currentColor"/>
@@ -1120,6 +1230,21 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     <div class="divider"></div>
 
     <div class="sidebar-section">
+      <span class="sidebar-label">Student type</span>
+      <div class="row2">
+        <button class="btn-sm student-type-btn" id="btn-domestic"
+          onclick="setStudentType('domestic')"
+          style="flex:1">🇳🇿 Domestic</button>
+        <button class="btn-sm student-type-btn" id="btn-international"
+          onclick="setStudentType('international')"
+          style="flex:1">🌏 International</button>
+      </div>
+      <div class="fees-note" id="fees-note" style="font-size:11px;color:var(--ink3);margin-top:4px"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sidebar-section">
       <span class="sidebar-label">Saved plans</span>
       <div id="saved-list"><div class="saved-empty">No saved plans yet.</div></div>
       <div class="save-row" id="save-row" style="display:none">
@@ -1200,9 +1325,57 @@ let modalCache = null;
 let modalLevel = '';
 let qualFilter = '';
 
+// ── Theme ─────────────────────────────────────────────────────────────────────
+
+const MOON_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+const SUN_SVG  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+
+function _applyTheme(theme, animate) {
+  if (animate) document.body.classList.add('theme-ready');
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  const btn = document.getElementById('theme-btn');
+  if (btn) {
+    const icon = document.getElementById('theme-icon');
+    const label = document.getElementById('theme-label');
+    if (theme === 'light') {
+      icon.outerHTML = MOON_SVG.replace('<svg', '<svg id="theme-icon"');
+      label.textContent = 'Dark';
+    } else {
+      icon.outerHTML = SUN_SVG.replace('<svg', '<svg id="theme-icon"');
+      label.textContent = 'Light';
+    }
+  }
+}
+
+function initTheme() {
+  // Priority: localStorage > prefers-color-scheme > dark
+  const saved = localStorage.getItem('cm-theme');
+  const preferLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+  const theme = saved || (preferLight ? 'light' : 'dark');
+  _applyTheme(theme, false);
+  // Listen for OS-level theme changes (only if user hasn't explicitly chosen)
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', e => {
+    if (!localStorage.getItem('cm-theme')) {
+      _applyTheme(e.matches ? 'light' : 'dark', true);
+    }
+  });
+}
+
+function toggleTheme() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const next = isLight ? 'dark' : 'light';
+  localStorage.setItem('cm-theme', next);
+  _applyTheme(next, true);
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 async function init() {
+  initTheme();  // Apply saved/system theme immediately - no flash
   try {
     const fr = await fetch(`${API}/`).then(r => r.json());
     const badge = document.getElementById('freshness-badge');
@@ -1243,6 +1416,7 @@ async function init() {
   setupTagInput('exclude-input','exclude-wrap');
   restoreFromUrl();
   renderSavedPlans();
+  initStudentType();
 }
 
 // ── Qual filter pills ─────────────────────────────────────────────────────────
@@ -1279,6 +1453,7 @@ function setupAutocomplete(inputId, boxId) {
   const inp = document.getElementById(inputId);
   const box = document.getElementById(boxId);
   let idx = -1;
+  let debounceTimer = null;
 
   function show(q) {
     const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -1315,7 +1490,11 @@ function setupAutocomplete(inputId, boxId) {
   }
 
   inp.addEventListener('focus', () => { if (allMajors.length) show(inp.value); });
-  inp.addEventListener('input', () => show(inp.value));
+  inp.addEventListener('input', () => {
+    // Debounce: wait 120ms after last keystroke before filtering
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => show(inp.value), 120);
+  });
   inp.addEventListener('keydown', e => {
     const items = box.querySelectorAll('.sug-item');
     if (e.key==='ArrowDown') { idx=Math.min(idx+1,items.length-1); hlSug(items,idx); e.preventDefault(); }
@@ -1412,36 +1591,79 @@ async function generatePlan() {
     auto_fill:    document.getElementById('auto-fill').checked,
   };
 
+  const ICON = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> Generate plan';
+
+  function finishBtn() {
+    btn.disabled = false;
+    btn.innerHTML = ICON;
+  }
+
   try {
-    const res = await fetch(`${API}/plan`, {
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+    const res = await fetch(`${API}/plan/stream`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
     });
-    const data = await res.json();
-    if (!res.ok) {
-      let msg = data.detail || 'Plan generation failed.';
-      if (msg.includes('lack a') && msg.includes('offering')) {
-        const m = msg.match(/Valid combinations[^:]*: ([^\."]+)/);
-        if (m) msg += `\n\nTry one of these campus/mode combos: ${m[1].trim()}`;
+
+    if (!res.ok || !res.body) {
+      const data = await res.json().catch(() => ({detail: 'Unknown error'}));
+      showError(data.detail || 'Plan generation failed.');
+      finishBtn();
+      return;
+    }
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let   buffer  = '';
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch(e) { continue; }
+
+        if (evt.type === 'progress') {
+          updateGenProgress(evt.pct, evt.msg);
+        } else if (evt.type === 'done') {
+          const data = evt.plan;
+          currentPlan = {request: body, response: data};
+          fillerCodes = new Set(data.filler_codes||[]);
+          sharedCodes = new Set();
+          if (data.double_major_info?.shared_codes) {
+            data.double_major_info.shared_codes.forEach(c => sharedCodes.add(c));
+          }
+          modalCache = null;
+          renderPlan(data);
+          pushUrl(body, data.plan_id);
+          setExportButtons(true);
+        } else if (evt.type === 'error') {
+          let msg = evt.detail || 'Plan generation failed.';
+          if (msg.includes('lack a') && msg.includes('offering')) {
+            const m = msg.match(/Valid combinations[^:]*: ([^."]+)/);
+            if (m) msg += `\n\nTry one of these campus/mode combos: ${m[1].trim()}`;
+          }
+          showError(msg);
+        }
       }
-      showError(msg);
-    } else {
-      currentPlan = {request: body, response: data};
-      fillerCodes = new Set(data.filler_codes||[]);
-      sharedCodes = new Set();
-      if (data.double_major_info?.shared_codes) {
-        data.double_major_info.shared_codes.forEach(c => sharedCodes.add(c));
-      }
-      modalCache = null;
-      renderPlan(data);
-      pushUrl(body);
-      setExportButtons(true);
     }
   } catch(e) {
     showError('Network error. Is the coursemap server running?');
   }
 
-  btn.disabled = false;
-  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> Generate plan';
+  finishBtn();
+}
+
+function updateGenProgress(pct, msg) {
+  const fill  = document.getElementById('gen-progress-fill');
+  const label = document.getElementById('gen-progress-label');
+  if (fill)  fill.style.width  = pct + '%';
+  if (label) label.textContent = msg || '';
 }
 
 function setExportButtons(enabled) {
@@ -1456,17 +1678,47 @@ function setExportButtons(enabled) {
 function showLoading() {
   const es = document.getElementById('empty-state');
   if (es) es.remove();
-  document.getElementById('main').innerHTML =
-    `<div class="loading-wrap"><div class="spinner"></div><span class="loading-text">Solving prerequisite graph…</span></div>`;
+  document.getElementById('main').innerHTML = `
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div class="gen-progress-wrap">
+        <div class="gen-progress-label" id="gen-progress-label">Preparing…</div>
+        <div class="gen-progress-track">
+          <div class="gen-progress-fill" id="gen-progress-fill"></div>
+        </div>
+      </div>
+    </div>`;
 }
 
 function showError(msg) {
+  // Check for "Valid combinations: X/Y" pattern to offer quick-fix buttons
+  const altMatch = msg.match(/Valid combinations for this major: ([^.]+)/);
+  let altHtml = '';
+  if (altMatch) {
+    const alts = altMatch[1].trim().split(/[,\s]+/).filter(x => /^[A-Z]+\/[A-Z]+$/.test(x));
+    if (alts.length) {
+      altHtml = `<div class="error-alts">
+        <div class="error-alts-label">Available via:</div>
+        ${alts.map(a => {
+          const [cam, mod] = a.split('/');
+          return `<button class="btn-sm" onclick="quickSwitch('${cam}','${mod}')">${a}</button>`;
+        }).join('')}
+      </div>`;
+    }
+  }
   document.getElementById('main').innerHTML = `
     <div class="error-state">
       <div class="error-icon">⚠</div>
       <div class="error-title">Could not generate plan</div>
       <div class="error-body">${esc(msg)}</div>
+      ${altHtml}
     </div>`;
+}
+
+function quickSwitch(campus, mode) {
+  document.getElementById('campus').value = campus;
+  document.getElementById('mode').value = mode;
+  generatePlan();
 }
 
 function renderPlan(data) {
@@ -1484,9 +1736,10 @@ function renderPlan(data) {
   // ── Disclaimer
   const disc = document.createElement('div');
   disc.className = 'disclaimer';
-  disc.innerHTML = `<span>⚠</span><span><strong>Unofficial tool</strong> - This plan is for guidance only. 
-    Always verify your requirements with Massey's official 
-    <a href="https://www.massey.ac.nz/study/" target="_blank" rel="noopener">programme information</a> 
+  disc.innerHTML = `<span class="disc-icon">⚠</span><span><strong>Unofficial tool - not affiliated with Massey University.</strong>
+    This plan is for guidance only. Credit counts, prerequisites, and availability may not be current.
+    Always verify your requirements with Massey's official
+    <a href="https://www.massey.ac.nz/study/" target="_blank" rel="noopener noreferrer">programme information</a>
     and consult your academic advisor before enrolling.</span>`;
   main.appendChild(disc);
 
@@ -1503,6 +1756,7 @@ function renderPlan(data) {
       <div class="sub">${meta.start_year} ${startSem} · ${meta.campus}/${meta.mode}${meta.credits_transfer ? ' · ' + meta.credits_transfer + 'cr transferred' : ''}</div>
     </div>
     <div class="plan-actions">
+      <button class="btn-sm" onclick="window.print()" title="Print or save as PDF">⎙ Print</button>
       <button class="btn-sm" onclick="downloadJson()">↓ JSON</button>
       <button class="btn-sm" onclick="downloadIcal()">↓ iCal</button>
       <button class="btn-sm" onclick="downloadHtml()">↓ HTML</button>
@@ -1518,14 +1772,31 @@ function renderPlan(data) {
     main.appendChild(el);
   });
 
+  // Long-degree advisory
+  const years = new Set(sems.map(s => s.year)).size;
+  if (years > 5) {
+    const el = document.createElement('div');
+    el.className = 'warn-banner info';
+    el.innerHTML = `<span>ℹ</span><span>This plan spans <strong>${years} years</strong>. Consider increasing credits/semester or checking for summer school options.</span>`;
+    main.appendChild(el);
+  }
+
+  // Unofficial tool reminder for first-time users
+  if (!localStorage.getItem('cm-disclaimer-seen')) {
+    localStorage.setItem('cm-disclaimer-seen', '1');
+  }
+
   // ── Stats
   const sg = document.createElement('div');
   sg.className = 'stats-grid';
+  const studentType = localStorage.getItem('cm-student-type') || 'domestic';
+  const estFees = estimateFees(totalPlanned, studentType);
   const statsData = [
     { val: sems.length,          lbl: 'Semesters', cls: '' },
     { val: `${totalPlanned}cr`,  lbl: 'Credits planned', cls: 'green' },
     { val: `${meta.degree_target||360}cr`, lbl: 'Degree target', cls: '' },
     { val: gap > 0 ? `${gap}cr` : '-', lbl: 'Elective gap', cls: gap > 0 ? 'amber' : '' },
+    { val: formatNZD(estFees),   lbl: `Est. fees (${studentType})`, cls: '' },
   ];
   if (isDouble) statsData.push({ val: `${data.double_major_info.saved_credits}cr`, lbl: 'Credits saved', cls: 'green' });
   statsData.forEach(s => {
@@ -1604,10 +1875,12 @@ function renderPlan(data) {
       const yearHdr = document.createElement('div');
       yearHdr.className = 'year-header';
       const yearCr = sems.filter(s=>s.year===sem.year).reduce((a,s)=>a+s.credits,0);
+      const studentType = localStorage.getItem('cm-student-type') || 'domestic';
+      const yearFees = estimateFees(yearCr, studentType);
       yearHdr.innerHTML = `
         <span class="year-label">${sem.year}</span>
         <span class="year-line"></span>
-        <span class="year-cr">${yearCr}cr this year</span>`;
+        <span class="year-cr">${yearCr}cr · ${formatNZD(yearFees)}</span>`;
       semsWrap.appendChild(yearHdr);
       prevYear = sem.year;
     }
@@ -1652,16 +1925,29 @@ function renderPlan(data) {
       card.className = `course-card${isFiller?' filler':''}`;
       card.onclick = () => openDrawer(c.code);
 
+      // Build set of codes scheduled BEFORE this semester for prereq check
+      const priorToThisSem = new Set();
+      sems.slice(0, si).forEach(ps => ps.courses.forEach(pc => priorToThisSem.add(pc.code)));
+      (data.prior_completed || []).forEach(pc => priorToThisSem.add(pc.code || pc));
+
       const badge = isShared
         ? `<span class="shared-badge">×2</span>`
         : isFiller
           ? `<span class="filler-badge">elective</span>`
           : '';
 
+      // Prereq satisfaction dot
+      const prereqSat = getPrereqSatisfaction(c, priorToThisSem);
+      const prereqDot = prereqSat === 'satisfied'
+        ? `<span class="prereq-ok" title="Prerequisites met"></span>`
+        : prereqSat === 'missing'
+          ? `<span class="prereq-miss" title="Check prerequisites"></span>`
+          : '';
+
       const levelCls = c.level >= 300 ? 'amber' : c.level >= 200 ? '' : '';
       card.innerHTML = `
         ${badge}
-        <div class="course-code">${c.code}</div>
+        <div class="course-code">${prereqDot}${c.code}</div>
         <div class="course-title">${esc(c.title)}</div>
         <div class="course-meta">
           <span class="course-level-badge">${c.level ? 'L'+c.level : ''}</span>
@@ -1792,7 +2078,7 @@ async function openDrawer(code) {
 
     const levelLbl = c.level ? `L${c.level}` : '';
     const offeringHtml = c.offerings?.map(o =>
-      `<span class="offering-pill">${o.campus}/${o.mode}/${o.semester}</span>`
+      `<span class="offering-pill">${escAttr(o.campus)}/${escAttr(o.mode)}/${escAttr(o.semester)}</span>`
     ).join('') || '<span style="color:var(--ink3);font-size:12px">No offerings listed</span>';
 
     let prereqHtml = '<span style="color:var(--ink3);font-size:12px">None</span>';
@@ -1800,24 +2086,55 @@ async function openDrawer(code) {
       prereqHtml = `<div class="prereq-tree">${renderPrereqExpr(c.prerequisite_expression)}</div>`;
     }
 
+    // Fetch prereq chain for visual diagram
+    let chainHtml = '';
+    try {
+      const chainRes = await fetch(`${API}/courses/${code}/prereq-chain`);
+      if (chainRes.ok) {
+        const chain = await chainRes.json();
+        if (chain.nodes && chain.nodes.length > 1) {
+          chainHtml = renderPrereqChain(chain, currentPlan);
+        }
+      }
+    } catch(e) { /* chain vis optional */ }
+
+    // Restrictions - always escape codes, never render raw
+    let restrictHtml = '';
+    if (c.restrictions?.length) {
+      const rCodes = c.restrictions.map(r => `<span class="pnode-code">${escAttr(r)}</span>`).join(', ');
+      restrictHtml = `<div class="drawer-section"><h4>Restrictions</h4><div class="prereq-tree">${rCodes}</div></div>`;
+    }
+
+    // Use the course URL if available, otherwise fall back to Massey search
+    const masseyUrl = c.url || `https://www.massey.ac.nz/study/courses/?q=${encodeURIComponent(c.code)}`;
+
     content.innerHTML = `
-      <div class="drawer-code">${c.code}</div>
+      <div class="drawer-code">${escAttr(c.code)}</div>
       <div class="drawer-title">${esc(c.title)}</div>
       <div class="drawer-badges">
-        ${levelLbl ? `<span class="badge green">${levelLbl}</span>` : ''}
+        ${levelLbl ? `<span class="badge green">${escAttr(levelLbl)}</span>` : ''}
         <span class="badge">${c.credits}cr</span>
         ${c.subject ? `<span class="badge">${esc(c.subject)}</span>` : ''}
       </div>
       ${c.description ? `<div class="drawer-section"><h4>About</h4><div class="drawer-desc">${esc(c.description)}</div></div>` : ''}
       <div class="drawer-section"><h4>Offerings</h4><div class="offering-pills">${offeringHtml}</div></div>
-      <div class="drawer-section"><h4>Prerequisites</h4>${prereqHtml}</div>
-      ${c.restrictions?.length ? `<div class="drawer-section"><h4>Restrictions</h4><div class="prereq-tree">${c.restrictions.join(', ')}</div></div>` : ''}
+      <div class="drawer-section">
+        <h4>Prerequisites</h4>
+        ${prereqHtml}
+        ${chainHtml ? `<div class="prereq-chain-wrap">${chainHtml}</div>` : ''}
+      </div>
+      ${restrictHtml}
       <div class="drawer-section">
         <h4>Links</h4>
-        <a href="https://www.massey.ac.nz/study/all-qualifications-and-degrees/" target="_blank" rel="noopener" class="btn-sm" style="display:inline-block;text-decoration:none">
-          Massey catalogue ↗
+        <a href="${escAttr(masseyUrl)}" target="_blank" rel="noopener noreferrer" class="btn-sm" style="display:inline-block;text-decoration:none">
+          View on Massey ↗
         </a>
-      </div>`;
+      </div>
+      <div class="drawer-actions">
+        <button class="btn-sm" onclick="addToCompleted('${escAttr(c.code)}')">✓ Mark done</button>
+        <button class="btn-sm" onclick="addToPrefer('${escAttr(c.code)}')">★ Prefer</button>
+        <button class="btn-sm" onclick="addToExclude('${escAttr(c.code)}')">✗ Exclude</button>
+      </div>\`;
   } catch(e) {
     content.innerHTML = `<p style="color:var(--red)">Failed to load course.</p>`;
   }
@@ -1825,19 +2142,33 @@ async function openDrawer(code) {
 
 function renderPrereqExpr(expr) {
   if (!expr) return '<span style="color:var(--ink3)">None</span>';
-  if (typeof expr === 'string') {
-    return `<a class="pnode-code" onclick="closeDrawer();setTimeout(()=>openDrawer('${expr}'),200)" href="#">${expr}</a>`;
+  // type/code format (from API)
+  if (expr.type === 'course' && expr.code) {
+    const safeCode = escAttr(expr.code);
+    return `<a class="pnode-code" onclick="closeDrawer();setTimeout(()=>openDrawer('${safeCode}'),200)" href="#">${safeCode}</a>`;
   }
+  if (expr.type === 'and' && expr.children) {
+    const sep = `<span class="pnode-op">AND</span>`;
+    return expr.children.map(a => renderPrereqExpr(a)).join(sep);
+  }
+  if (expr.type === 'or' && expr.children) {
+    const sep = `<span class="pnode-op">OR</span>`;
+    return expr.children.map(a => renderPrereqExpr(a)).join(sep);
+  }
+  // Legacy op/args format
   if (expr.op === 'AND' || expr.op === 'OR') {
     const sep = `<span class="pnode-op">${expr.op}</span>`;
-    return expr.args.map(a => renderPrereqExpr(a)).join(sep);
+    return (expr.args||[]).map(a => renderPrereqExpr(a)).join(sep);
   }
-  if (typeof expr === 'object' && expr.code) {
-    return `<a class="pnode-code" onclick="closeDrawer();setTimeout(()=>openDrawer('${expr.code}'),200)" href="#">${expr.code}</a>`;
+  if (typeof expr === 'string') {
+    const safeCode = escAttr(expr);
+    return `<a class="pnode-code" onclick="closeDrawer();setTimeout(()=>openDrawer('${safeCode}'),200)" href="#">${safeCode}</a>`;
   }
   return `<span style="color:var(--ink3)">${esc(JSON.stringify(expr))}</span>`;
 }
 
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 function closeDrawer() {
   document.getElementById('overlay').classList.remove('open');
   document.getElementById('drawer').classList.remove('open');
@@ -1849,17 +2180,8 @@ async function openCourseModal() {
   document.getElementById('course-modal').classList.add('open');
   document.getElementById('modal-q').value = '';
   document.getElementById('modal-q').focus();
-  if (!modalCache) {
-    document.getElementById('modal-results').innerHTML = `<div class="modal-empty"><div class="spinner" style="margin:0 auto 8px"></div>Loading…</div>`;
-    try {
-      const campus = document.getElementById('campus').value;
-      const mode   = document.getElementById('mode').value;
-      const res = await fetch(`${API}/courses?campus=${campus}&mode=${mode}&limit=2000`);
-      const data = await res.json();
-      modalCache = data.courses || [];
-    } catch(e) { modalCache = []; }
-  }
-  renderModalResults('');
+  // Load a smaller initial set - server handles filtering
+  await fetchModalCourses('', modalLevel);
 }
 
 function closeCourseModal() {
@@ -1869,53 +2191,71 @@ function closeCourseModal() {
 let modalSearchTimer = null;
 function modalSearch(q) {
   clearTimeout(modalSearchTimer);
-  modalSearchTimer = setTimeout(() => renderModalResults(q), 120);
+  // Debounce search - wait 250ms after last keystroke before hitting the API
+  modalSearchTimer = setTimeout(() => fetchModalCourses(q, modalLevel), 250);
 }
 
 function setModalLevel(el, lvl) {
   document.querySelectorAll('.f-pill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   modalLevel = lvl;
-  renderModalResults(document.getElementById('modal-q').value);
+  fetchModalCourses(document.getElementById('modal-q').value, lvl);
 }
 
-function renderModalResults(q) {
-  const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const filtered = (modalCache||[]).filter(c => {
-    const text = `${c.code} ${c.title}`.toLowerCase();
-    const wordOk = !words.length || words.every(w => text.includes(w));
-    const levelOk = !modalLevel || (
-      modalLevel === '700' ? c.level >= 700
-                           : Math.floor(c.level/100)*100 === parseInt(modalLevel)
-    );
-    return wordOk && levelOk;
-  });
+async function fetchModalCourses(q, lvl) {
+  const campus = document.getElementById('campus').value;
+  const mode   = document.getElementById('mode').value;
+  const params = new URLSearchParams({ limit: 150, campus, mode });
+  if (q && q.trim()) params.set('search', q.trim());
+  if (lvl) params.set('level', lvl === '700' ? '700' : lvl);
 
-  document.getElementById('modal-count').textContent =
-    `${filtered.length.toLocaleString()} courses${q ? ' matching "'+q+'"' : ''}`;
+  document.getElementById('modal-results').innerHTML =
+    `<div class="modal-empty"><div class="spinner" style="margin:0 auto 8px"></div>Loading…</div>`;
+  document.getElementById('modal-count').textContent = 'Loading…';
 
-  const shown = filtered.slice(0, 200);
-  if (!shown.length) {
-    document.getElementById('modal-results').innerHTML = `<div class="modal-empty">No courses found.</div>`;
-    return;
+  try {
+    const res = await fetch(`${API}/courses?${params}`);
+    const data = await res.json();
+    const courses = data.courses || [];
+    const total = data.count || courses.length;
+
+    document.getElementById('modal-count').textContent =
+      `${total.toLocaleString()} courses${q ? ` matching "${q}"` : ''}${total > 150 ? ' - showing first 150' : ''}`;
+
+    if (!courses.length) {
+      document.getElementById('modal-results').innerHTML = `<div class="modal-empty">No courses found.</div>`;
+      return;
+    }
+
+    document.getElementById('modal-results').innerHTML = courses.map(c => {
+      const sems = (c.offered_semesters || []).join('/');
+      const safeCode = escAttr(c.code);
+      return `<div class="modal-row" onclick="closeCourseModal();openDrawer('${safeCode}')">
+        <span class="modal-code">${escAttr(c.code)}</span>
+        <span class="modal-title">${esc(c.title)}</span>
+        <span class="modal-cr">${c.credits}cr</span>
+        <span class="modal-sem">${escAttr(sems)}</span>
+      </div>`;
+    }).join('') + (total > 150 ? `<div class="modal-empty">Refine your search to see more results</div>` : '');
+  } catch(e) {
+    document.getElementById('modal-results').innerHTML = `<div class="modal-empty">Failed to load courses.</div>`;
+    document.getElementById('modal-count').textContent = '';
   }
-
-  document.getElementById('modal-results').innerHTML = shown.map(c => {
-    const sems = c.offerings?.map(o=>o.semester).filter((v,i,a)=>a.indexOf(v)===i).join('/') || '';
-    return `<div class="modal-row" onclick="closeCourseModal();openDrawer('${c.code}')">
-      <span class="modal-code">${c.code}</span>
-      <span class="modal-title">${esc(c.title)}</span>
-      <span class="modal-cr">${c.credits}cr</span>
-      <span class="modal-sem">${sems}</span>
-    </div>`;
-  }).join('') + (filtered.length > 200 ? `<div class="modal-empty">Showing 200 of ${filtered.length} - refine search</div>` : '');
 }
 
 // ── Mark semester done ────────────────────────────────────────────────────────
 
 function markDone(codes) {
   codes.forEach(c => addTag('completed-wrap', c));
-  toast(`${codes.length} courses marked as completed.`);
+  toast(`${codes.length} course${codes.length===1?'':'s'} marked as completed. Click "Generate plan" to update your schedule.`);
+  // Visually mark the semester as done
+  codes.forEach(code => {
+    document.querySelectorAll('.course-card').forEach(card => {
+      if (card.querySelector('.course-code')?.textContent.includes(code)) {
+        card.classList.add('done');
+      }
+    });
+  });
 }
 
 // ── Saved plans ───────────────────────────────────────────────────────────────
@@ -1936,14 +2276,25 @@ function renderSavedPlans() {
     list.innerHTML = `<div class="saved-empty">No saved plans yet.</div>`;
     return;
   }
-  list.innerHTML = plans.map((p, i) => `
-    <div class="saved-item" onclick="loadSaved(${i})">
-      <span class="saved-name">${esc(p.name)}</span>
-      <span class="saved-meta">${p.credits||'?'}cr</span>
+  list.innerHTML = plans.map((p, i) => {
+    const dateStr = p.savedAt
+      ? new Date(p.savedAt).toLocaleDateString('en-NZ', {day:'numeric',month:'short',year:'numeric'})
+      : '';
+    const shareBtn = p.plan_id
+      ? `<button class="saved-btn" title="Copy share link"
+           onclick="event.stopPropagation();copySavedLink('${escAttr(p.plan_id)}')">⬡</button>`
+      : '';
+    return `<div class="saved-item" onclick="loadSaved(${i})">
+      <div class="saved-item-left">
+        <span class="saved-name">${esc(p.name)}</span>
+        <span class="saved-meta">${p.credits||'?'}cr${dateStr ? ' · ' + dateStr : ''}</span>
+      </div>
       <div class="saved-actions">
+        ${shareBtn}
         <button class="saved-btn" onclick="event.stopPropagation();deleteSaved(${i})" title="Delete">✕</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function promptSave() {
@@ -1962,57 +2313,109 @@ function commitSave() {
   const name = document.getElementById('save-name').value.trim();
   if (!name || !currentPlan) return;
   const plans = getSaved();
-  const meta = currentPlan.response.meta;
+  const meta  = currentPlan.response.meta || {};
+  const planId = currentPlan.response.plan_id || null;
+
+  // Check for duplicate name - warn but still save
+  const dupeIdx = plans.findIndex(p => p.name === name);
+  if (dupeIdx >= 0) {
+    plans.splice(dupeIdx, 1); // replace
+    toast(`Updated "${name}".`);
+  } else {
+    toast('Plan saved.');
+  }
+
   plans.unshift({
     name,
-    credits: meta.credits_planned + meta.credits_prior + meta.credits_transfer,
-    major: meta.major,
+    credits: (meta.credits_planned||0) + (meta.credits_prior||0) + (meta.credits_transfer||0),
+    major:   meta.major || currentPlan.request?.major || '',
     request: currentPlan.request,
+    plan_id: planId,
     savedAt: new Date().toISOString(),
   });
+
+  // Keep at most 20 saved plans
+  if (plans.length > 20) plans.length = 20;
+
   setSaved(plans);
   cancelSave();
   renderSavedPlans();
-  toast('Plan saved.');
 }
 
 async function loadSaved(i) {
   const plan = getSaved()[i];
-  if (!plan?.request) return;
-  const req = plan.request;
+  if (!plan) return;
 
-  document.getElementById('major-input').value = req.major || '';
-  document.getElementById('double-input').value = req.double_major || '';
-  document.getElementById('start-year').value = req.start_year || 2026;
-  document.getElementById('start-sem').value = req.start_semester || 'S1';
-  document.getElementById('max-credits').value = req.max_credits || 60;
-  document.getElementById('campus').value = req.campus || 'D';
-  document.getElementById('mode').value = req.mode || 'DIS';
-  document.getElementById('transfer').value = req.transfer_credits || 0;
+  // If we have a plan_id, try fetching the cached plan directly (no re-run)
+  if (plan.plan_id) {
+    showLoading();
+    closeSidebar();
+    try {
+      const res = await fetch(`${API}/plan/${plan.plan_id}`);
+      if (res.ok) {
+        const data = await res.json();
+        currentPlan = {request: plan.request, response: data};
+        fillerCodes = new Set(data.filler_codes||[]);
+        sharedCodes = new Set(data.double_major_info?.shared_codes||[]);
+        renderPlan(data);
+        pushUrl(plan.request, data.plan_id);
+        setExportButtons(true);
+        // Restore form state too
+        _restoreFormFromRequest(plan.request);
+        return;
+      }
+    } catch(e) {}
+    // Cache miss - fall through to regenerate
+    toast('Cached plan expired - regenerating…');
+  }
+
+  // Fallback: restore form and regenerate
+  _restoreFormFromRequest(plan.request || {});
+  generatePlan();
+}
+
+function _restoreFormFromRequest(req) {
+  if (!req) return;
+  if (req.major)            document.getElementById('major-input').value = req.major;
+  if (req.double_major)     document.getElementById('double-input').value = req.double_major || '';
+  if (req.start_year)       document.getElementById('start-year').value   = req.start_year;
+  if (req.start_semester)   document.getElementById('start-sem').value    = req.start_semester;
+  if (req.max_credits)      document.getElementById('max-credits').value  = req.max_credits;
+  if (req.campus)           document.getElementById('campus').value       = req.campus;
+  if (req.mode)             document.getElementById('mode').value         = req.mode;
+  if (req.transfer_credits !== undefined) document.getElementById('transfer').value = req.transfer_credits;
   document.getElementById('no-summer').checked = !!req.no_summer;
-  document.getElementById('auto-fill').checked = !!req.auto_fill;
-
-  // Restore tags
+  document.getElementById('auto-fill').checked  = !!req.auto_fill;
   ['completed-wrap','prefer-wrap','exclude-wrap'].forEach(id => {
     document.querySelectorAll(`#${id} .tag`).forEach(t => t.remove());
   });
-  (req.completed||[]).forEach(c => addTag('completed-wrap',c));
-  (req.prefer||[]).forEach(c => addTag('prefer-wrap',c));
-  (req.exclude||[]).forEach(c => addTag('exclude-wrap',c));
+  (req.completed||[]).forEach(c => addTag('completed-wrap', c));
+  (req.prefer||[]).forEach(c    => addTag('prefer-wrap', c));
+  (req.exclude||[]).forEach(c   => addTag('exclude-wrap', c));
+}
 
-  generatePlan();
+async function copySavedLink(planId) {
+  const url = `${location.origin}${location.pathname}?pid=${planId}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Share link copied!');
+  } catch(e) {
+    prompt('Copy this link:', url);
+  }
 }
 
 function deleteSaved(i) {
   const plans = getSaved();
+  const name  = plans[i]?.name || 'plan';
   plans.splice(i, 1);
   setSaved(plans);
   renderSavedPlans();
+  toast(`"${name}" deleted.`);
 }
 
 // ── URL state ─────────────────────────────────────────────────────────────────
 
-function pushUrl(req) {
+function pushUrl(req, planId) {
   const p = new URLSearchParams();
   if (req.major)          p.set('major', req.major);
   if (req.double_major)   p.set('dm', req.double_major);
@@ -2027,10 +2430,12 @@ function pushUrl(req) {
   if (req.completed?.length) p.set('done', req.completed.join(','));
   if (req.prefer?.length)    p.set('prefer', req.prefer.join(','));
   if (req.exclude?.length)   p.set('exclude', req.exclude.join(','));
+  // Stable plan_id - share links load the cached plan, not a re-run
+  if (planId) p.set('pid', planId);
   history.replaceState(null,'',`?${p.toString()}`);
 }
 
-function restoreFromUrl() {
+async function restoreFromUrl() {
   const p = new URLSearchParams(location.search);
   if (p.get('major')) document.getElementById('major-input').value = p.get('major');
   if (p.get('dm'))    document.getElementById('double-input').value = p.get('dm');
@@ -2046,7 +2451,43 @@ function restoreFromUrl() {
   if (p.get('prefer'))   p.get('prefer').split(',').filter(Boolean).forEach(c => addTag('prefer-wrap',c));
   if (p.get('exclude'))  p.get('exclude').split(',').filter(Boolean).forEach(c => addTag('exclude-wrap',c));
 
+  if (p.get('pid')) {
+    // Shared link with a plan_id - fetch the cached plan directly (deterministic)
+    showLoading();
+    try {
+      const res = await fetch(`${API}/plan/${p.get('pid')}`);
+      if (res.ok) {
+        const data = await res.json();
+        currentPlan = { request: _reqFromUrl(p), response: data };
+        fillerCodes = new Set(data.filler_codes||[]);
+        sharedCodes = new Set(data.double_major_info?.shared_codes||[]);
+        renderPlan(data);
+        setExportButtons(true);
+        return;
+      }
+    } catch(e) {}
+    // Cache miss - fall through to re-generate
+  }
+
   if (p.get('major')) setTimeout(() => generatePlan(), 300);
+}
+
+function _reqFromUrl(p) {
+  return {
+    major: p.get('major')||'',
+    double_major: p.get('dm')||null,
+    start_year: parseInt(p.get('year'))||new Date().getFullYear(),
+    start_semester: p.get('sem')||'S1',
+    max_credits: parseInt(p.get('cr'))||60,
+    campus: p.get('campus')||'D',
+    mode: p.get('mode')||'DIS',
+    no_summer: !!p.get('nosummer'),
+    auto_fill: !!p.get('fill'),
+    transfer_credits: parseInt(p.get('transfer'))||0,
+    completed: (p.get('done')||'').split(',').filter(Boolean),
+    prefer: (p.get('prefer')||'').split(',').filter(Boolean),
+    exclude: (p.get('exclude')||'').split(',').filter(Boolean),
+  };
 }
 
 function copyLink() {
@@ -2098,6 +2539,182 @@ function downloadHtml() {
   .code{font-family:monospace;color:#2a5c45}
   .elective{color:#888;font-size:10px}
   .disclaimer{font-size:11px;color:#888;margin-top:2rem;padding:10px;background:#fff3e0;border-radius:6px}
+
+/* ── Prerequisite chain visualisation ─────────────────────────────── */
+.prereq-chain-wrap {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.prereq-chain {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: var(--r2);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+}
+.pchain-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pchain-arrow {
+  font-size: 16px;
+  color: var(--ink3);
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.pchain-node {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  cursor: pointer;
+  min-width: 120px;
+  max-width: 150px;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.pchain-node:hover { border-color: var(--green); background: var(--green-lt); }
+.pchain-node.target {
+  border-color: var(--green);
+  background: var(--green-lt);
+}
+.pchain-node.planned {
+  border-color: var(--green);
+  opacity: 0.85;
+}
+.pchain-code { font-family: var(--mono); font-size: 11px; color: var(--ink3); font-weight: 500; }
+.pchain-title { font-size: 11px; color: var(--ink); line-height: 1.3; }
+.pchain-tick {
+  position: absolute;
+  top: 4px; right: 6px;
+  font-size: 10px;
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ── Fees estimate ───────────────────────────────────────────────── */
+.fees-toggle {
+  font-size: 11px;
+  color: var(--ink3);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  margin-top: 4px;
+  display: block;
+}
+.fees-toggle:hover { color: var(--green); }
+
+/* ── Print styles ──────────────────────────────────────────────── */
+@media print {
+  .sidebar, .header, .export-bar, .disclaimer,
+  .btn-sm, .mark-done-btn, #overlay, #drawer,
+  #course-modal, .tab-bar, .toast-wrap { display: none !important; }
+  .main { margin: 0 !important; padding: 16px !important; }
+  .course-card { break-inside: avoid; }
+  .sem-block { break-inside: avoid; }
+  body { background: white !important; color: black !important; }
+}
+
+/* ── Prereq satisfaction indicator on course cards ─────────────── */
+.course-card .prereq-ok {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.course-card .prereq-miss {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--amber);
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* ── Student type toggle ─────────────────────────────────────────── */
+.student-type-btn {
+  font-size: 11px;
+  padding: 5px 8px;
+  transition: background 0.15s, color 0.15s;
+}
+.student-type-btn.active {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+
+
+/* ── Error state alternative suggestions ────────────────────────── */
+.error-alts {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.error-alts-label {
+  font-size: 12px;
+  color: var(--ink3);
+}
+.error-state { text-align: center; padding: 48px 24px; }
+.error-icon  { font-size: 32px; margin-bottom: 12px; }
+.error-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--ink); }
+.error-body  { font-size: 13px; color: var(--ink2); max-width: 480px; margin: 0 auto; line-height: 1.5; }
+
+
+/* ── Done/completed course cards ─────────────────────────────────── */
+.course-card.done {
+  opacity: 0.55;
+  position: relative;
+}
+.course-card.done::after {
+  content: '✓';
+  position: absolute;
+  top: 6px; right: 8px;
+  font-size: 13px;
+  color: var(--green);
+  font-weight: 700;
+}
+
+
+/* ── Info (non-warning) banner ──────────────────────────────────── */
+.warn-banner.info {
+  background: color-mix(in srgb, var(--green) 8%, var(--bg2));
+  border-color: color-mix(in srgb, var(--green) 30%, var(--border));
+  color: var(--ink2);
+}
+
+
+/* ── Drawer action buttons ───────────────────────────────────────── */
+.drawer-actions {
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  margin-top: auto;
+  flex-shrink: 0;
+}
+.drawer-actions .btn-sm {
+  flex: 1;
+  justify-content: center;
+  font-size: 11.5px;
+}
+
 </style>
 </head>
 <body>
@@ -2160,8 +2777,196 @@ function esc(s) {
 function escAttr(s) { return esc(s); }
 function escHtml(s) { return esc(s); }
 
+// ── Mobile tab bar ──────────────────────────────────────────────────────────
+// On mobile, the hamburger + sidebar-overlay pattern requires too many taps.
+// A bottom tab bar lets students switch between Settings, Plan and Courses
+// with a single tap - matching native app conventions on iOS/Android.
+
+function initTabBar() {
+  const bar = document.getElementById('mobile-tabs');
+  if (!bar) return;
+  // Show tab bar only on mobile
+  if (window.innerWidth > 900) return;
+  bar.style.display = 'flex';
+  // Adjust main padding so content isn't hidden under the tab bar
+  document.querySelector('.main').style.paddingBottom = '70px';
+  setActiveTab('plan');
+}
+
+function setActiveTab(tab) {
+  document.querySelectorAll('.mob-tab').forEach(t => t.classList.remove('active'));
+  const el = document.getElementById(`tab-${tab}`);
+  if (el) el.classList.add('active');
+
+  if (tab === 'settings') {
+    openSidebar();
+  } else if (tab === 'plan') {
+    closeSidebar();
+    document.getElementById('main').scrollIntoView({behavior:'smooth'});
+  } else if (tab === 'courses') {
+    closeSidebar();
+    openCourseModal();
+  }
+}
+
+function openSidebar() {
+  document.querySelector('.sidebar')?.classList.add('open');
+  document.querySelector('.sidebar-backdrop')?.classList.add('open');
+}
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 init();
+// Tab bar runs after init so elements exist
+setTimeout(initTabBar, 0);
+
+// ── Prerequisite chain visualisation ─────────────────────────────────────────
+
+function renderPrereqChain(chain, plan) {
+  // Build a visual horizontal chain: root → ... → target
+  const nodes = chain.nodes || [];
+  const targetCode = chain.code;
+  
+  // Get all planned/completed codes
+  const plannedCodes = new Set();
+  if (plan) {
+    (plan.semesters || []).forEach(s => (s.courses || []).forEach(c => plannedCodes.add(c.code)));
+    (plan.prior_completed || []).forEach(c => plannedCodes.add(c.code || c));
+  }
+
+  if (nodes.length <= 1) return '';
+
+  // Group nodes by depth
+  const byDepth = {};
+  nodes.forEach(n => {
+    if (!byDepth[n.depth]) byDepth[n.depth] = [];
+    byDepth[n.depth].push(n);
+  });
+  const maxDepth = Math.max(...Object.keys(byDepth).map(Number));
+
+  let html = '<div class="prereq-chain">';
+  for (let d = 0; d <= maxDepth; d++) {
+    const dNodes = byDepth[d] || [];
+    const isLast = d === maxDepth;
+    html += '<div class="pchain-col">';
+    dNodes.forEach(n => {
+      const isPlanned = plannedCodes.has(n.code);
+      const isTarget  = n.code === targetCode;
+      const cls = isTarget ? 'pchain-node target' : isPlanned ? 'pchain-node planned' : 'pchain-node';
+      const tick = isPlanned && !isTarget ? '<span class="pchain-tick">✓</span>' : '';
+      html += `<div class="${cls}" onclick="closeDrawer();setTimeout(()=>openDrawer('${escAttr(n.code)}'),200)" title="${esc(n.title)}">
+        ${tick}
+        <span class="pchain-code">${esc(n.code)}</span>
+        <span class="pchain-title">${esc(n.title.length > 22 ? n.title.slice(0,21)+'…' : n.title)}</span>
+      </div>`;
+    });
+    html += '</div>';
+    if (!isLast) html += '<div class="pchain-arrow">→</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+// ── Prereq satisfaction in course cards ──────────────────────────────────────
+
+function getPrereqSatisfaction(course, plannedCodes) {
+  // Returns: 'satisfied' | 'partial' | 'missing' | 'none'
+  if (!course.prerequisite_expression) return 'none';
+  
+  function check(expr) {
+    if (!expr) return true;
+    if (expr.type === 'course') return plannedCodes.has(expr.code);
+    if (expr.type === 'and') return (expr.children || []).every(check);
+    if (expr.type === 'or')  return (expr.children || []).some(check);
+    if (typeof expr === 'string') return plannedCodes.has(expr);
+    return true;
+  }
+  
+  const satisfied = check(course.prerequisite_expression);
+  return satisfied ? 'satisfied' : 'missing';
+}
+
+// ── NZ fees estimator ─────────────────────────────────────────────────────────
+
+function estimateFees(totalCredits, studentType) {
+  // Approximate 2026 Massey fees (NZ domestic, per 15cr course ≈ $900–$1200)
+  // International is roughly 3–4x domestic
+  const domestic_per_15cr  = 975;
+  const intl_per_15cr      = 3800;
+  const rate = (studentType === 'international') ? intl_per_15cr : domestic_per_15cr;
+  const courses = Math.round(totalCredits / 15);
+  const total = courses * rate;
+  return total;
+}
+
+function formatNZD(n) {
+  return 'NZ$' + n.toLocaleString('en-NZ');
+}
+
+
+// ── Student type (domestic / international) ───────────────────────────────────
+
+function setStudentType(type) {
+  localStorage.setItem('cm-student-type', type);
+  document.getElementById('btn-domestic').classList.toggle('active', type === 'domestic');
+  document.getElementById('btn-international').classList.toggle('active', type === 'international');
+  const note = document.getElementById('fees-note');
+  if (note) {
+    note.textContent = type === 'domestic'
+      ? 'NZ/AU citizen or permanent resident'
+      : 'International student fee rates';
+  }
+  // Re-render plan if one is loaded to refresh the fee estimate
+  if (currentPlan) renderPlan(currentPlan.response || currentPlan);
+}
+
+function initStudentType() {
+  const saved = localStorage.getItem('cm-student-type') || 'domestic';
+  setStudentType(saved);
+}
+
+
+// ── Drawer quick-actions ───────────────────────────────────────────────────────
+
+function addToCompleted(code) {
+  addTag('completed-wrap', code);
+  toast(`${code} added to completed courses.`);
+  closeDrawer();
+}
+
+function addToExclude(code) {
+  addTag('exclude-wrap', code);
+  toast(`${code} added to excluded courses.`);
+  closeDrawer();
+}
+
+function addToPrefer(code) {
+  addTag('prefer-wrap', code);
+  toast(`${code} added to preferred electives.`);
+  closeDrawer();
+}
+
 </script>
+
+<!-- Mobile bottom tab bar - hidden on desktop via CSS -->
+<nav id="mobile-tabs" class="mobile-tab-bar" style="display:none" role="tablist">
+  <button class="mob-tab" id="tab-settings" onclick="setActiveTab('settings')" aria-label="Settings">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+    <span>Settings</span>
+  </button>
+  <button class="mob-tab active" id="tab-plan" onclick="setActiveTab('plan')" aria-label="Plan">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    <span>Plan</span>
+  </button>
+  <button class="mob-tab" id="tab-courses" onclick="setActiveTab('courses')" aria-label="Courses">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+    <span>Courses</span>
+  </button>
+</nav>
 </body>
 </html>
