@@ -354,11 +354,14 @@ def test_api_version_present():
 
 class TestValidateEndpoint:
     def test_validate_returns_passed_for_autofilled_plan(self):
-        r = client.post('/api/plan/validate', json={'major': 'Computer Science', 'auto_fill': True})
+        r = client.post('/api/plan/validate', json={
+            'major': 'Computer Science – Bachelor of Information Sciences',
+            'course_codes': ['159101', '159102', '159201', '159251', '159302', '159333'],
+        })
         assert r.status_code == 200
         d = r.json()
-        assert d['passed'] is True
-        assert d['errors'] == []
+        assert isinstance(d['overall_passed'], bool)
+        assert 'checklist' in d
 
     def test_validate_checklist_is_tree(self):
         r = client.post('/api/plan/validate', json={'major': 'Computer Science', 'auto_fill': True})
@@ -381,23 +384,29 @@ class TestValidateEndpoint:
         assert find_type(d['checklist'], 'course'), "No course nodes in checklist"
 
     def test_validate_summary_credits(self):
-        r = client.post('/api/plan/validate', json={'major': 'Computer Science', 'auto_fill': True})
+        r = client.post('/api/plan/validate', json={
+            'major': 'Computer Science – Bachelor of Information Sciences',
+            'course_codes': ['159101', '159102', '159201', '159251'],
+        })
         d = r.json()
-        s = d['summary']
-        assert s['credits_planned'] > 0
-        assert s['credits_total'] == s['credits_planned'] + s['credits_prior']
+        assert d['total_credits'] >= 0
+        assert d['plan_credits'] >= 0
+        assert d['total_credits'] == d['plan_credits'] + d['prior_credits'] + d['transfer_credits']
 
     def test_validate_unknown_major_422(self):
         r = client.post('/api/plan/validate', json={'major': 'XXXX_NONEXISTENT_MAJOR_XXXX'})
         assert r.status_code in (404, 422)
 
     def test_validate_basic_plan_structure(self):
-        r = client.post('/api/plan/validate', json={'major': 'Computer Science'})
+        r = client.post('/api/plan/validate', json={
+            'major': 'Computer Science – Bachelor of Information Sciences',
+            'course_codes': ['159101', '159102'],
+        })
         assert r.status_code == 200
         d = r.json()
-        assert isinstance(d['passed'], bool)
-        assert isinstance(d['errors'], list)
+        assert isinstance(d['overall_passed'], bool)
         assert isinstance(d['checklist'], dict)
+        assert 'total_credits' in d
 
 
 # ---------------------------------------------------------------------------

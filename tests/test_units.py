@@ -191,11 +191,15 @@ class TestCheckCredits:
         _check_credits(courses, errors, warnings)
         assert not errors
 
-    def test_zero_credits_is_error(self):
+    def test_zero_credits_is_warning_not_error(self):
+        """Zero-credit courses are known non-schedulable entries - downgraded to warning."""
         courses = {"A": _course("A", credits=0)}
         errors, warnings = [], []
         _check_credits(courses, errors, warnings)
-        assert any("credits must be positive" in e for e in errors)
+        assert not any("credits must be positive" in e for e in errors), \
+            "Zero-credit should be a warning, not an error"
+        assert any("non-schedulable" in w for w in warnings), \
+            "Zero-credit course should produce a warning"
 
     def test_negative_credits_is_error(self):
         courses = {"A": _course("A", credits=-5)}
@@ -340,7 +344,7 @@ class TestValidateDataset:
             assert e.result.errors
 
     def test_raise_on_error_false_returns_result(self):
-        courses = {"A": _course("A", credits=0)}
+        courses = {"A": _course("A", credits=-5)}  # negative credits is still an error
         result = validate_dataset(courses, [], raise_on_error=False)
         assert not result.is_valid
         assert result.errors
