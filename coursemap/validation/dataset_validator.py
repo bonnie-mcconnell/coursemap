@@ -253,9 +253,15 @@ def check_credits(
                 f"Course {code!r}: credits must be an int, "
                 f"got {type(course.credits).__name__!r} ({course.credits!r})."
             )
-        elif course.credits <= 0:
+        elif course.credits == 0:
+            # Zero-credit courses (practicums, language enrolments, etc.) are
+            # intentionally non-schedulable - downgrade from error to warning.
+            warnings.append(
+                f"Course {code!r}: credits=0 (non-schedulable practicum/language course - will be skipped by planner)."
+            )
+        elif course.credits < 0:
             errors.append(
-                f"Course {code!r}: credits must be positive, got {course.credits}."
+                f"Course {code!r}: credits must be non-negative, got {course.credits}."
             )
 
 

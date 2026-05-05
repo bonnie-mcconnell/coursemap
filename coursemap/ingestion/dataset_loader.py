@@ -491,28 +491,46 @@ def load_courses() -> dict[str, Course]:
         offerings = parse_offerings(item.get("offerings"))
         own_level = level_map.get(code, 100)
 
+        # After repair_dataset.py runs, prerequisites are already cleaned:
+        # self-refs, noise, and phantoms removed. Pass level_map=None to skip
+        # the aggressive plausibility filter that strips cross-subject prereqs.
+        # This preserves legitimate cross-subject prerequisites (e.g. CS courses
+        # requiring Maths) that were previously stripped by the old heuristic.
         prereq_expr = parse_prereqs(
             item.get("prerequisites"),
             own_code=code,
             own_level=own_level,
-            level_map=level_map,
+            level_map=None,  # skip plausibility filter - data is pre-cleaned
         )
-        # Strip phantom codes that survived the plausibility filter. These are
-        # same-subject codes from retired courses that no longer exist in the
-        # catalogue. Removing them now means the scheduler never needs to treat
-        # them as out-of-scope bypasses, and the CLI audit produces no noise.
+        # Still strip any phantom codes that somehow survived repair.
         prereq_expr = _strip_phantom_prereqs(prereq_expr, known_codes)
 
         try:
+            raw_credits = item.get("credits")
+            # Explicitly handle anomalous credit values.
+            # Zero-credit courses (practicums, language courses) are non-schedulable
+            # and should not be silently upgraded to 15cr.
+            # Very large values (90, 120, 240) are research/thesis courses and
+            # should be stored as-is so the planner can handle them explicitly.
+            if raw_credits is None or raw_credits == "":
+                credits = 15  # sensible default for missing data
+            else:
+                credits = int(float(raw_credits))
+                if credits <= 0:
+                    # Keep as 0 - the scheduler will skip zero-credit courses
+                    credits = 0
+
             course = Course(
                 code=code,
                 title=item.get("title", ""),
-                credits=int(item.get("credits") or 15),
+                credits=credits,
                 level=own_level,
                 offerings=offerings,
                 prerequisites=prereq_expr,
                 corequisites=_parse_code_set(item.get("corequisites", []), own_code=code),
                 restrictions=_parse_code_set(item.get("restrictions", []), own_code=code),
+                url=item.get("url") or None,
+                description=item.get("intro") or item.get("description") or None,
             )
         except Exception as exc:
             logger.warning(
