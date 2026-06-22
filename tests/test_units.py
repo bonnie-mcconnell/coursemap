@@ -5,6 +5,9 @@ Unit tests for modules that previously had no test coverage:
   - validation/dataset_validator.py
   - planner/generator.py          (PlanStats)
 """
+
+from __future__ import annotations
+
 from coursemap.domain.course import Course, Offering
 from coursemap.domain.prerequisite import (
     AndExpression,
