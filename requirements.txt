@@ -73,7 +73,6 @@ tzdata==2026.2
     # via arrow
 uvicorn[standard]==0.46.0
     # via coursemap (pyproject.toml)
-uvloop==0.22.1
     # via uvicorn
 watchfiles==1.1.1
     # via uvicorn
@@ -81,3 +80,5 @@ websockets==16.0
     # via uvicorn
 wrapt==2.1.2
     # via deprecated
+beautifulsoup4>=4.12
+requests>=2.31

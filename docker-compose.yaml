@@ -1,45 +1,26 @@
-# docker-compose.yaml - local dev and self-hosted deployment
-# Usage:
-#   docker compose up --build          # start
-#   docker compose up --build -d       # start in background
-#   docker compose down                # stop
-#
-# Env vars (create a .env file to override):
-#   PORT=8080
-#   ALLOWED_ORIGINS=https://yourdomain.com
-#   COURSEMAP_DB_PATH=/app/data/plans.db  (default - stored in named volume)
+version: "3.9"
 
 services:
   coursemap:
     build: .
-    image: coursemap:latest
-    container_name: coursemap
-    restart: unless-stopped
     ports:
       - "${PORT:-8080}:8080"
     environment:
-      - PYTHONUNBUFFERED=1
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
-      - WORKERS=1                           # Must be 1 with SQLite backend
-      - COURSEMAP_DB_PATH=/app/data/plans.db
+      - HOST=0.0.0.0
+      - PORT=8080
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:8000}
+      - PLAN_RATE_LIMIT=${PLAN_RATE_LIMIT:-30}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
-      # Mount datasets directory so you can update data without rebuilding
-      - ./datasets:/app/datasets:ro
-      # Named volume for SQLite plan store - persists across restarts/rebuilds
-      - coursemap-data:/app/data
+      # Persist plan store across restarts
+      - coursemap_data:/app/data
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c",
-             "import urllib.request; urllib.request.urlopen('http://localhost:8080/api')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      start_period: 15s
 
 volumes:
-  coursemap-data:
-    driver: local
+  coursemap_data:

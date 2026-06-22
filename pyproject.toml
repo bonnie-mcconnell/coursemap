@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coursemap"
-version = "2.0.0"
+version = "7.0.0"
 description = "Degree planner for Massey University"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11"  # 3.11+ for tomllib, match-statement, ExceptionGroup
 license = { text = "MIT" }
-authors = [{ name = "Bonnie McConnell", email = "bonniep.mcconnell@gmail.com" }]
+authors = [{ name = "WH" }]
 dependencies = []
 
 [project.optional-dependencies]
@@ -30,6 +30,7 @@ dev = [
     "pytest>=7",
     "pytest-cov",
     "httpx>=0.27",   # needed by FastAPI TestClient
+    "anyio[trio]>=4.0",  # needed by async test support
 ]
 # Install everything
 all = [
@@ -40,6 +41,7 @@ all = [
     "ics>=0.7",
     "slowapi>=0.1.9",
     "httpx>=0.27",
+    "anyio[trio]>=4.0",
 ]
 
 [project.scripts]
@@ -54,6 +56,9 @@ include = ["coursemap*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "slow: marks tests that iterate over the full dataset (deselect with -m 'not slow' for fast iteration)",
+]
 
 [tool.ruff]
 line-length = 100
