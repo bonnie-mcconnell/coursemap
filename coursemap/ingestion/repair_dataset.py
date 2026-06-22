@@ -313,5 +313,52 @@ def _iter_nodes(req: dict):
         yield from _iter_nodes(ch)
 
 
+
+def remove_ghost_prerequisites(courses: list[dict]) -> int:
+    """
+    Remove prerequisite references to courses that have no offerings at all.
+
+    A course with zero offerings is retired or a data ghost - it can never be
+    taken, so requiring it as a prerequisite permanently blocks all downstream
+    courses. This is the most common cause of plan-bloat in the scheduler.
+
+    Returns the number of courses fixed.
+    """
+    no_offerings: set[str] = {
+        c["course_code"] for c in courses if not c.get("offerings")
+    }
+
+    def _prune(node):
+        if node is None:
+            return None
+        if isinstance(node, str):
+            return None if node in no_offerings else node
+        if isinstance(node, list):
+            cleaned = [p for p in node if p not in no_offerings]
+            return cleaned if cleaned else None
+        if isinstance(node, dict):
+            op = node.get("op")
+            args = [_prune(a) for a in node.get("args", [])]
+            args = [a for a in args if a is not None]
+            if not args:
+                return None
+            if len(args) == 1:
+                return args[0]
+            return {"op": op, "args": args}
+        return node
+
+    fixed = 0
+    for course in courses:
+        prereqs = course.get("prerequisites")
+        if not prereqs:
+            continue
+        pruned = _prune(prereqs)
+        if pruned != prereqs:
+            course["prerequisites"] = pruned
+            fixed += 1
+
+    return fixed
+
+
 if __name__ == "__main__":
     main()

@@ -1,0 +1,2198 @@
+[
+  {
+    "name": "Accounting",
+    "url": "https://www.massey.ac.nz/study/minors/accounting-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "115109",
+            "115111",
+            "115112",
+            "115113",
+            "115114",
+            "115115"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "115211",
+            "115212",
+            "115213",
+            "115230",
+            "115231",
+            "115232",
+            "115277"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "115319",
+            "115321",
+            "115322",
+            "115323",
+            "115324",
+            "115325",
+            "115326",
+            "115327",
+            "115340",
+            "115341",
+            "115377",
+            "115388"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Accounting Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Agriculture",
+    "url": "https://www.massey.ac.nz/study/minors/agriculture-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "123103",
+            "123104",
+            "123105",
+            "124100",
+            "124103",
+            "124104"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "123201",
+            "123207",
+            "123208",
+            "123271"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "123305",
+            "123307",
+            "123308",
+            "123310",
+            "123331",
+            "123332"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Agriculture Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Animal Science",
+    "url": "https://www.massey.ac.nz/study/minors/animal-science-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "123103",
+            "123104",
+            "123105"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "123201",
+            "123207",
+            "123208",
+            "123271"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "123305",
+            "123307",
+            "123308",
+            "123310",
+            "123331",
+            "123332"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Animal Science Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Biochemistry",
+    "url": "https://www.massey.ac.nz/study/minors/biochemistry-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "122102",
+            "227106",
+            "227107",
+            "227120"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "122201",
+            "122202",
+            "122231",
+            "227231",
+            "227232",
+            "227233"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "122301",
+            "122303",
+            "227331",
+            "227332",
+            "227333",
+            "227334"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Biochemistry Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Biology",
+    "url": "https://www.massey.ac.nz/study/minors/biology-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "162101",
+            "162103"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "162211",
+            "162221"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "162301",
+            "162304"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Biology Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Business",
+    "url": "https://www.massey.ac.nz/study/minors/business-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [
+            "115109",
+            "115111",
+            "115112",
+            "115113",
+            "115114",
+            "115115",
+            "115116",
+            "115120",
+            "115121",
+            "115122",
+            "115123"
+          ],
+          "label": "Level 100 courses (60cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "115211",
+            "115212",
+            "115213",
+            "115230"
+          ],
+          "label": "Level 200 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "115319",
+            "115321",
+            "115322",
+            "115323",
+            "115324",
+            "115325",
+            "115326",
+            "115327",
+            "115340",
+            "115341",
+            "115377",
+            "115388",
+            "115389"
+          ],
+          "label": "Level 300 courses (30cr)"
+        }
+      ],
+      "label": "Business Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from Massey handbook. Verify with official programme regulations."
+  },
+  {
+    "name": "Chemistry",
+    "url": "https://www.massey.ac.nz/study/minors/chemistry-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "123103",
+            "123104",
+            "123105",
+            "141127",
+            "141140",
+            "141141"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "123201",
+            "123207",
+            "123208",
+            "123271",
+            "141211",
+            "141212",
+            "141240",
+            "141241",
+            "141242",
+            "141243",
+            "141245",
+            "141246"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "123305",
+            "123307",
+            "123308",
+            "123310",
+            "123331",
+            "123332",
+            "141311",
+            "141312",
+            "141320",
+            "141321",
+            "141322",
+            "141323"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Chemistry Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Communication",
+    "url": "https://www.massey.ac.nz/study/minors/communication-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "219101",
+            "219108",
+            "222104",
+            "222157",
+            "222158",
+            "222159"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "219204",
+            "219206",
+            "219207",
+            "219209",
+            "219211",
+            "219212",
+            "219213",
+            "219219",
+            "219223",
+            "219228",
+            "219229",
+            "219230"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "219303",
+            "219304",
+            "219305",
+            "219310",
+            "219311",
+            "219312",
+            "219320",
+            "219325",
+            "219335",
+            "219336",
+            "219345",
+            "219346"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Communication Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Computer Science",
+    "url": "https://www.massey.ac.nz/study/minors/computer-science-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "COURSE",
+          "course_code": "159101"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "159102"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "159201",
+            "159223",
+            "159224",
+            "159234",
+            "159235",
+            "159236",
+            "159251",
+            "159261",
+            "159270",
+            "159272"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "159302",
+            "159323",
+            "159324",
+            "159333",
+            "159336",
+            "159341",
+            "159342",
+            "159352",
+            "159356",
+            "159361",
+            "159391",
+            "159392"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Computer Science Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from Massey handbook. Verify with official programme regulations."
+  },
+  {
+    "name": "Creative Writing",
+    "url": "https://www.massey.ac.nz/study/minors/creative-writing-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "197119",
+            "197122",
+            "197123",
+            "197124",
+            "197139",
+            "197190"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "197228",
+            "197238",
+            "197239",
+            "197288",
+            "197290",
+            "197291",
+            "213241",
+            "213243",
+            "213244",
+            "213254",
+            "213255",
+            "213256"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "197331",
+            "197332",
+            "197338",
+            "197339",
+            "197379",
+            "197383",
+            "197388",
+            "197390",
+            "213311",
+            "213341",
+            "213343",
+            "213344"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Creative Writing Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Criminology",
+    "url": "https://www.massey.ac.nz/study/minors/criminology-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "COURSE",
+          "course_code": "219101"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 15,
+          "course_codes": [
+            "219108"
+          ],
+          "label": "Level 100 courses (15cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [
+            "219204",
+            "219206",
+            "219207",
+            "219209",
+            "219211",
+            "219212",
+            "219213",
+            "219219",
+            "219223",
+            "219228",
+            "219229",
+            "219230",
+            "219231",
+            "219234"
+          ],
+          "label": "Level 200 courses (60cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "219303",
+            "219304",
+            "219305",
+            "219310",
+            "219311",
+            "219312",
+            "219320",
+            "219325",
+            "219335",
+            "219336",
+            "219345",
+            "219346"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Criminology Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from Massey handbook. Verify with official programme regulations."
+  },
+  {
+    "name": "Defence and Security Studies",
+    "url": "https://www.massey.ac.nz/study/minors/defence-and-security-studies-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "294101",
+            "294115",
+            "294151",
+            "294170",
+            "294180"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "294201",
+            "294215",
+            "294272"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "294304",
+            "294310",
+            "294350",
+            "294381",
+            "294382"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Defence and Security Studies Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Ecology",
+    "url": "https://www.massey.ac.nz/study/minors/ecology-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "150103",
+            "150106",
+            "150107",
+            "150108",
+            "150112",
+            "150113"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "150201",
+            "150202",
+            "150204",
+            "150205",
+            "150206",
+            "150207",
+            "150208",
+            "150235"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "150301",
+            "150302",
+            "150303",
+            "150304",
+            "150307",
+            "150308"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Ecology Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Economics",
+    "url": "https://www.massey.ac.nz/study/minors/economics-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "COURSE",
+          "course_code": "218101"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 15,
+          "course_codes": [
+            "218102",
+            "218103",
+            "218104",
+            "218105",
+            "218106",
+            "218110",
+            "218141",
+            "218143",
+            "218146",
+            "218147"
+          ],
+          "label": "Level 100 courses (15cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [
+            "218201",
+            "218203",
+            "218204",
+            "218205",
+            "218206",
+            "218210",
+            "218220",
+            "218224",
+            "218226",
+            "218228",
+            "218230"
+          ],
+          "label": "Level 200 courses (60cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "218303",
+            "218304",
+            "218305",
+            "218306",
+            "218307",
+            "218320",
+            "218321",
+            "218323",
+            "218324",
+            "218325",
+            "218326",
+            "218327",
+            "218328",
+            "218329",
+            "218330",
+            "218331",
+            "218335",
+            "218336",
+            "218344",
+            "218346",
+            "218352"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Economics Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from Massey handbook. Verify with official programme regulations."
+  },
+  {
+    "name": "English",
+    "url": "https://www.massey.ac.nz/study/minors/english-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "139109",
+            "139111",
+            "139139",
+            "139142",
+            "192101",
+            "192102"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "139211",
+            "139232",
+            "139239",
+            "139244",
+            "139253",
+            "139255",
+            "139270"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "139305",
+            "139307",
+            "139325",
+            "139340",
+            "139352",
+            "139362",
+            "139376"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "English Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Environmental Studies",
+    "url": "https://www.massey.ac.nz/study/minors/environmental-studies-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "119101",
+            "119106",
+            "119116",
+            "119120",
+            "119170",
+            "119180"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "119202",
+            "119203",
+            "119231",
+            "119258",
+            "119270",
+            "119281",
+            "119292",
+            "150201",
+            "150202",
+            "150204",
+            "150205",
+            "150206"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "119302",
+            "119303",
+            "119358",
+            "119373",
+            "119381",
+            "119382",
+            "119392",
+            "150301",
+            "150302",
+            "150303",
+            "150304",
+            "150307"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Environmental Studies Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Finance",
+    "url": "https://www.massey.ac.nz/study/minors/finance-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "115109",
+            "115111",
+            "115112",
+            "115113",
+            "115114",
+            "115115"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "115211",
+            "115212",
+            "115213",
+            "115230",
+            "115231",
+            "115232",
+            "115277"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "115319",
+            "115321",
+            "115322",
+            "115323",
+            "115324",
+            "115325",
+            "115326",
+            "115327",
+            "115340",
+            "115341",
+            "115377",
+            "115388"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Finance Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Food Technology",
+    "url": "https://www.massey.ac.nz/study/minors/food-technology-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "120101",
+            "121101"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "120201",
+            "120217",
+            "120219",
+            "121200",
+            "121210",
+            "121213",
+            "121214"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "120303",
+            "120306",
+            "121310",
+            "121313"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Food Technology Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Geography",
+    "url": "https://www.massey.ac.nz/study/minors/geography-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "119101",
+            "119106",
+            "119116",
+            "119120",
+            "119170",
+            "119180"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "119202",
+            "119203",
+            "119231",
+            "119258",
+            "119270",
+            "119281",
+            "119292"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "119302",
+            "119303",
+            "119358",
+            "119373",
+            "119381",
+            "119382",
+            "119392"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Geography Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Health Science",
+    "url": "https://www.massey.ac.nz/study/minors/health-science-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "228115",
+            "234111",
+            "234121",
+            "234131",
+            "234135",
+            "234140"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "228211",
+            "228212",
+            "228271",
+            "234213",
+            "234214",
+            "234215",
+            "234216",
+            "234222",
+            "234223",
+            "234236",
+            "234242",
+            "234243"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "228311",
+            "228312",
+            "228371",
+            "234312",
+            "234327",
+            "234331",
+            "234338",
+            "234343",
+            "234346",
+            "234360",
+            "234361"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Health Science Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "History",
+    "url": "https://www.massey.ac.nz/study/minors/history-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "178100",
+            "178110",
+            "178111"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "178200",
+            "178201",
+            "178210",
+            "178221",
+            "178230",
+            "178239",
+            "178240",
+            "178242",
+            "178280"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "178300",
+            "178301",
+            "178307",
+            "178308",
+            "178311",
+            "178312",
+            "178328",
+            "178360",
+            "178370",
+            "178380"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "History Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Human Resource Management",
+    "url": "https://www.massey.ac.nz/study/minors/human-resource-management-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "152133"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "152203",
+            "152230",
+            "152232",
+            "152233",
+            "152234",
+            "152236",
+            "152237",
+            "152238",
+            "152250",
+            "152252",
+            "152261",
+            "152264"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "152304",
+            "152325",
+            "152330",
+            "152331",
+            "152336",
+            "152337",
+            "152338",
+            "152350",
+            "152355",
+            "152366",
+            "152393",
+            "152399"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Human Resource Management Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Information Systems",
+    "url": "https://www.massey.ac.nz/study/minors/information-systems-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "159100",
+            "159101",
+            "159102"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "159201",
+            "159223",
+            "159224",
+            "159234",
+            "159235",
+            "159236",
+            "159251",
+            "159261",
+            "159270",
+            "159272"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "159302",
+            "159323",
+            "159324",
+            "159333",
+            "159336",
+            "159341",
+            "159342",
+            "159352",
+            "159356",
+            "159361",
+            "159391",
+            "159392"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Information Systems Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Law and Society",
+    "url": "https://www.massey.ac.nz/study/minors/law-and-society-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "190104",
+            "190107",
+            "190109",
+            "190112",
+            "190113",
+            "190114"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "155201",
+            "155202",
+            "155203",
+            "155210",
+            "190201",
+            "190203",
+            "190204",
+            "190205",
+            "190206",
+            "190210",
+            "190211",
+            "190216"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "155301",
+            "190301",
+            "190303",
+            "190306",
+            "190307",
+            "190308",
+            "190309",
+            "190313",
+            "190314",
+            "190315",
+            "190318",
+            "190327"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Law and Society Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Maori Studies",
+    "url": "https://www.massey.ac.nz/study/minors/maori-studies-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "COURSE",
+          "course_code": "196101"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "196201",
+            "196205",
+            "196217",
+            "196223",
+            "196225"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "196315",
+            "196317",
+            "196318",
+            "196319",
+            "196327",
+            "196329"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Maori Studies Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Marketing",
+    "url": "https://www.massey.ac.nz/study/minors/marketing-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "214101",
+            "214102"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "214201",
+            "214202",
+            "214212",
+            "214213",
+            "214215",
+            "214216"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "214301",
+            "214311",
+            "214312",
+            "214314",
+            "214316"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Marketing Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Mathematics",
+    "url": "https://www.massey.ac.nz/study/minors/mathematics-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "COURSE",
+          "course_code": "160101"
+        },
+        {
+          "type": "COURSE",
+          "course_code": "160102"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "160104",
+            "160105"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "160203",
+            "160204",
+            "160211",
+            "160212"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "160301",
+            "160302",
+            "160314",
+            "160318"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Mathematics Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from Massey handbook. Verify with official programme regulations."
+  },
+  {
+    "name": "Media Studies",
+    "url": "https://www.massey.ac.nz/study/minors/media-studies-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "154101",
+            "219101",
+            "219108"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "154202",
+            "154203",
+            "154204",
+            "154208",
+            "154224",
+            "154250",
+            "219204",
+            "219206",
+            "219207",
+            "219209",
+            "219211",
+            "219212"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "154301",
+            "154302",
+            "154303",
+            "154304",
+            "154311",
+            "154313",
+            "219303",
+            "219304",
+            "219305",
+            "219310",
+            "219311",
+            "219312"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Media Studies Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Music",
+    "url": "https://www.massey.ac.nz/study/minors/music-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "133152",
+            "133153",
+            "133154",
+            "133167",
+            "133168",
+            "133175"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "133253",
+            "133256",
+            "133257",
+            "133260",
+            "133267",
+            "133275",
+            "133276",
+            "133277",
+            "133280",
+            "133281",
+            "133287",
+            "133288"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "133350",
+            "133355",
+            "133356",
+            "133360",
+            "133365",
+            "133368",
+            "133375",
+            "133376",
+            "133378",
+            "133380",
+            "133381",
+            "133388"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Music Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Philosophy",
+    "url": "https://www.massey.ac.nz/study/minors/philosophy-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "134101",
+            "134102",
+            "134104",
+            "134105",
+            "134106",
+            "254101"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "134201",
+            "134203",
+            "134204",
+            "134205",
+            "134207",
+            "134213",
+            "134214",
+            "134216",
+            "134218",
+            "134220",
+            "134221",
+            "254200"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "134305",
+            "134308",
+            "134309",
+            "134311",
+            "134317",
+            "254300",
+            "254304",
+            "254337",
+            "254340"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Philosophy Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Physics",
+    "url": "https://www.massey.ac.nz/study/minors/physics-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "160101",
+            "160102",
+            "160104",
+            "160105"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "160203",
+            "160204",
+            "160211",
+            "160212"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "160301",
+            "160302",
+            "160314",
+            "160318"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Physics Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Politics",
+    "url": "https://www.massey.ac.nz/study/minors/politics-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "200100",
+            "200161"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "200215",
+            "200261",
+            "200262"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "200300",
+            "200301",
+            "200303",
+            "200315",
+            "200361"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Politics Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Property",
+    "url": "https://www.massey.ac.nz/study/minors/property-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "117106",
+            "117107",
+            "117153",
+            "117155"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "117201",
+            "117202",
+            "117224",
+            "117225",
+            "117226",
+            "117231",
+            "117243",
+            "117245"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "117301",
+            "117302",
+            "117303",
+            "117331",
+            "117332",
+            "117343",
+            "117344",
+            "117345",
+            "117348",
+            "117361",
+            "117371",
+            "117381"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Property Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Psychology",
+    "url": "https://www.massey.ac.nz/study/minors/psychology-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "COURSE",
+          "course_code": "175101"
+        },
+        {
+          "type": "COURSE",
+          "course_code": "175102"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "175103",
+            "175104"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "175201",
+            "175203",
+            "175205",
+            "175206",
+            "175210"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "175301",
+            "175302",
+            "175303",
+            "175304",
+            "175306",
+            "175309",
+            "175311",
+            "175313",
+            "175314",
+            "175317",
+            "175318",
+            "175343",
+            "175345"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Psychology Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from Massey handbook. Verify with official programme regulations."
+  },
+  {
+    "name": "Public Health",
+    "url": "https://www.massey.ac.nz/study/minors/public-health-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "178100",
+            "178110",
+            "178111",
+            "234111",
+            "234121",
+            "234131"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "178200",
+            "178201",
+            "178210",
+            "178221",
+            "178230",
+            "178239",
+            "178240",
+            "178242",
+            "178280",
+            "234213",
+            "234214",
+            "234215"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "178300",
+            "178301",
+            "178307",
+            "178308",
+            "178311",
+            "178312",
+            "178328",
+            "178360",
+            "178370",
+            "178380",
+            "234312",
+            "234327"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Public Health Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Social Policy",
+    "url": "https://www.massey.ac.nz/study/minors/social-policy-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "179110",
+            "179120",
+            "179121",
+            "179155"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "179202",
+            "179210",
+            "179230",
+            "179240",
+            "179255"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "179310",
+            "179320",
+            "179330",
+            "179340",
+            "179355"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Social Policy Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset. Verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Sociology",
+    "url": "https://www.massey.ac.nz/study/minors/sociology-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [
+            "190104",
+            "190107",
+            "190109",
+            "190112",
+            "190113",
+            "190114",
+            "190115",
+            "190116",
+            "190117",
+            "190120",
+            "190121",
+            "190123",
+            "190124",
+            "190154",
+            "190164",
+            "190189"
+          ],
+          "label": "Level 100 courses (30cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "190201",
+            "190203",
+            "190204",
+            "190205",
+            "190206",
+            "190210",
+            "190211",
+            "190216",
+            "190220",
+            "190221",
+            "190222",
+            "190224",
+            "190225",
+            "190237",
+            "190240",
+            "190249",
+            "190254",
+            "190282",
+            "190283",
+            "190285",
+            "190288",
+            "190298",
+            "190299"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "190301",
+            "190303",
+            "190306",
+            "190307",
+            "190308",
+            "190309",
+            "190313",
+            "190314",
+            "190315",
+            "190318",
+            "190327",
+            "190328",
+            "190335",
+            "190340",
+            "190351",
+            "190356",
+            "190398",
+            "190399"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Sociology Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from Massey handbook. Verify with official programme regulations."
+  },
+  {
+    "name": "Sport and Exercise",
+    "url": "https://www.massey.ac.nz/study/minors/sport-and-exercise-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "COURSE",
+          "course_code": "228115"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "228211",
+            "228212",
+            "228271"
+          ],
+          "label": "Level 200 courses (45cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "228311",
+            "228312",
+            "228371"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Sport and Exercise Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from course dataset patterns. Always verify at massey.ac.nz/study/minors/"
+  },
+  {
+    "name": "Statistics",
+    "url": "https://www.massey.ac.nz/study/minors/statistics-minor/",
+    "total_credits": 120,
+    "requirement": {
+      "type": "ALL_OF",
+      "children": [
+        {
+          "type": "COURSE",
+          "course_code": "297101"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [
+            "297201"
+          ],
+          "label": "Level 200 courses (60cr)"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [
+            "297301"
+          ],
+          "label": "Level 300 courses (45cr)"
+        }
+      ],
+      "label": "Statistics Minor - 120cr"
+    },
+    "data_quality": "inferred",
+    "note": "Minor structure inferred from Massey handbook. Verify with official programme regulations."
+  }
+]

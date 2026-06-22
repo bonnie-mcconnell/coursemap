@@ -89,6 +89,16 @@
             "119792",
             "119797"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [],
+          "label": "Free electives (45cr) - choose from any Massey courses",
+          "subject_hint": [
+            "119",
+            "233"
+          ]
         }
       ]
     }
@@ -98,7 +108,14 @@
     "url": "https://www.massey.ac.nz/study/all-qualifications-and-degrees/postgraduate-diploma-in-science-and-technology-PDSCN/biological-sciences-PDSCN1EBLSC1/",
     "requirement": {
       "type": "ALL_OF",
-      "children": []
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses"
+        }
+      ]
     }
   },
   {
@@ -309,6 +326,17 @@
           "course_codes": [
             "119728",
             "162760"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [],
+          "label": "Free electives (45cr) - choose from any Massey courses",
+          "subject_hint": [
+            "119",
+            "162",
+            "283"
           ]
         }
       ]
@@ -658,6 +686,15 @@
             "161875",
             "161893"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "161"
+          ]
         }
       ]
     }
@@ -856,6 +893,15 @@
             "123872",
             "123875"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "123"
+          ]
         }
       ]
     }
@@ -882,6 +928,16 @@
           "course_codes": [
             "162720",
             "247712"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "162",
+            "247"
           ]
         }
       ]
@@ -979,6 +1035,15 @@
             "160871",
             "160872",
             "160875"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "160"
           ]
         }
       ]
@@ -1241,6 +1306,15 @@
             "110389",
             "110304"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "110"
+          ]
         }
       ]
     }
@@ -1314,6 +1388,15 @@
         {
           "type": "COURSE",
           "course_code": "251271"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 105,
+          "course_codes": [],
+          "label": "Free electives (105cr) - choose from any Massey courses",
+          "subject_hint": [
+            "251"
+          ]
         }
       ]
     }
@@ -1324,6 +1407,31 @@
     "requirement": {
       "type": "ALL_OF",
       "children": [
+        {
+          "type": "ALL_OF",
+          "children": [
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "159101",
+                "159102"
+              ],
+              "label": "Intro Programming (choose 159101 Applied Programming OR 159102 CS and Programming)"
+            },
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "160101",
+                "160104",
+                "160105"
+              ],
+              "label": "Intro Mathematics (choose one: Calculus, Intro Maths for Science, or Methods of Maths)"
+            }
+          ],
+          "label": "BInfSc compulsory first-year courses"
+        },
         {
           "type": "COURSE",
           "course_code": "297101"
@@ -1363,6 +1471,17 @@
             "158337",
             "297301"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses at appropriate level",
+          "subject_hint": [
+            "158",
+            "159",
+            "297"
+          ]
         }
       ]
     }
@@ -1373,6 +1492,31 @@
     "requirement": {
       "type": "ALL_OF",
       "children": [
+        {
+          "type": "ALL_OF",
+          "children": [
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "159101",
+                "159102"
+              ],
+              "label": "Intro Programming (choose 159101 Applied Programming OR 159102 CS and Programming)"
+            },
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "160101",
+                "160104",
+                "160105"
+              ],
+              "label": "Intro Mathematics (choose one: Calculus, Intro Maths for Science, or Methods of Maths)"
+            }
+          ],
+          "label": "BInfSc compulsory first-year courses"
+        },
         {
           "type": "COURSE",
           "course_code": "158100"
@@ -1432,6 +1576,20 @@
             "157350",
             "157394"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 105,
+          "course_codes": [],
+          "label": "Free electives (105cr) - choose from any Massey courses at appropriate level",
+          "subject_hint": [
+            "157",
+            "158",
+            "159",
+            "161",
+            "247",
+            "297"
+          ]
         }
       ]
     }
@@ -1442,6 +1600,31 @@
     "requirement": {
       "type": "ALL_OF",
       "children": [
+        {
+          "type": "ALL_OF",
+          "children": [
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "159101",
+                "159102"
+              ],
+              "label": "Intro Programming (choose 159101 Applied Programming OR 159102 CS and Programming)"
+            },
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "160101",
+                "160104",
+                "160105"
+              ],
+              "label": "Intro Mathematics (choose one: Calculus, Intro Maths for Science, or Methods of Maths)"
+            }
+          ],
+          "label": "BInfSc compulsory first-year courses"
+        },
         {
           "type": "COURSE",
           "course_code": "161111"
@@ -1491,6 +1674,18 @@
             "158345",
             "158383"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses at appropriate level",
+          "subject_hint": [
+            "157",
+            "158",
+            "161",
+            "247"
+          ]
         }
       ]
     }
@@ -1501,6 +1696,31 @@
     "requirement": {
       "type": "ALL_OF",
       "children": [
+        {
+          "type": "ALL_OF",
+          "children": [
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "159101",
+                "159102"
+              ],
+              "label": "Intro Programming (choose 159101 Applied Programming OR 159102 CS and Programming)"
+            },
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "160101",
+                "160104",
+                "160105"
+              ],
+              "label": "Intro Mathematics (choose one: Calculus, Intro Maths for Science, or Methods of Maths)"
+            }
+          ],
+          "label": "BInfSc compulsory first-year courses"
+        },
         {
           "type": "COURSE",
           "course_code": "297101"
@@ -1537,6 +1757,16 @@
             "159356",
             "159391",
             "159392"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 195,
+          "course_codes": [],
+          "label": "Free electives (195cr) - choose from any Massey courses at appropriate level",
+          "subject_hint": [
+            "159",
+            "297"
           ]
         }
       ]
@@ -1579,6 +1809,17 @@
             "232875",
             "232899"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "162",
+            "196",
+            "232"
+          ]
         }
       ]
     }
@@ -1620,6 +1861,17 @@
             "299333",
             "299380"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "139",
+            "154",
+            "299"
+          ]
         }
       ]
     }
@@ -1630,6 +1882,31 @@
     "requirement": {
       "type": "ALL_OF",
       "children": [
+        {
+          "type": "ALL_OF",
+          "children": [
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "159101",
+                "159102"
+              ],
+              "label": "Intro Programming (choose 159101 Applied Programming OR 159102 CS and Programming)"
+            },
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "160101",
+                "160104",
+                "160105"
+              ],
+              "label": "Intro Mathematics (choose one: Calculus, Intro Maths for Science, or Methods of Maths)"
+            }
+          ],
+          "label": "BInfSc compulsory first-year courses"
+        },
         {
           "type": "COURSE",
           "course_code": "161111"
@@ -1753,6 +2030,16 @@
             "259771",
             "259772"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "254",
+            "259"
+          ]
         }
       ]
     }
@@ -1770,6 +2057,15 @@
             "261760",
             "261765",
             "261766"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "261"
           ]
         }
       ]
@@ -1792,6 +2088,15 @@
         {
           "type": "COURSE",
           "course_code": "265738"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "265"
+          ]
         }
       ]
     }
@@ -1813,6 +2118,15 @@
         {
           "type": "COURSE",
           "course_code": "249742"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "249"
+          ]
         }
       ]
     }
@@ -1840,6 +2154,15 @@
             "258725",
             "258720"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "258"
+          ]
         }
       ]
     }
@@ -1861,6 +2184,15 @@
         {
           "type": "COURSE",
           "course_code": "276785"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "276"
+          ]
         }
       ]
     }
@@ -2027,6 +2359,31 @@
       "type": "ALL_OF",
       "children": [
         {
+          "type": "ALL_OF",
+          "children": [
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "159101",
+                "159102"
+              ],
+              "label": "Intro Programming (choose 159101 Applied Programming OR 159102 CS and Programming)"
+            },
+            {
+              "type": "CHOOSE_CREDITS",
+              "credits": 15,
+              "course_codes": [
+                "160101",
+                "160104",
+                "160105"
+              ],
+              "label": "Intro Mathematics (choose one: Calculus, Intro Maths for Science, or Methods of Maths)"
+            }
+          ],
+          "label": "BInfSc compulsory first-year courses"
+        },
+        {
           "type": "CHOOSE_CREDITS",
           "credits": 75,
           "course_codes": [
@@ -2063,6 +2420,16 @@
             "159352",
             "297301"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 210,
+          "course_codes": [],
+          "label": "Free electives (210cr) - choose from any Massey courses at appropriate level",
+          "subject_hint": [
+            "159",
+            "297"
+          ]
         }
       ]
     }
@@ -2072,7 +2439,14 @@
     "url": "https://www.massey.ac.nz/study/all-qualifications-and-degrees/bachelor-of-communication-UBCMM/expressive-arts-and-media-studies-UBCMM1JEAMS1/",
     "requirement": {
       "type": "ALL_OF",
-      "children": []
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 360,
+          "course_codes": [],
+          "label": "Free electives (360cr) - choose from any Massey courses"
+        }
+      ]
     }
   },
   {
@@ -2110,6 +2484,15 @@
             "172372",
             "172373",
             "172375"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "172"
           ]
         }
       ]
@@ -2160,6 +2543,15 @@
             "219345",
             "219346"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "219"
+          ]
         }
       ]
     }
@@ -2200,6 +2592,16 @@
             "219345",
             "219346"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "156",
+            "219"
+          ]
         }
       ]
     }
@@ -2238,6 +2640,16 @@
             "299323",
             "299333"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "154",
+            "299"
+          ]
         }
       ]
     }
@@ -2267,6 +2679,17 @@
             "156338",
             "156339",
             "219311"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "154",
+            "156",
+            "219"
           ]
         }
       ]
@@ -2438,6 +2861,15 @@
             "219345",
             "219346"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "219"
+          ]
         }
       ]
     }
@@ -2520,6 +2952,16 @@
             "299329",
             "299333",
             "299380"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "139",
+            "299"
           ]
         }
       ]
@@ -2614,6 +3056,19 @@
             "179320",
             "200301"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "131",
+            "145",
+            "176",
+            "179",
+            "200"
+          ]
         }
       ]
     }
@@ -2650,6 +3105,21 @@
             "150201",
             "176308"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "121",
+            "131",
+            "132",
+            "134",
+            "145",
+            "150",
+            "176"
+          ]
         }
       ]
     }
@@ -2676,6 +3146,15 @@
             "243202",
             "243301",
             "243304"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "243"
           ]
         }
       ]
@@ -2705,6 +3184,17 @@
           "course_codes": [
             "214301",
             "219312"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "130",
+            "214",
+            "219"
           ]
         }
       ]
@@ -2738,6 +3228,15 @@
             "148339",
             "148346"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "148"
+          ]
         }
       ]
     }
@@ -2768,6 +3267,15 @@
             "242302",
             "242304",
             "242305"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "242"
           ]
         }
       ]
@@ -2806,6 +3314,17 @@
             "233215",
             "233303"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "121",
+            "145",
+            "233"
+          ]
         }
       ]
     }
@@ -2842,6 +3361,15 @@
             "172337",
             "172338"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "172"
+          ]
         }
       ]
     }
@@ -2876,6 +3404,16 @@
             "154311",
             "154313",
             "299323"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "154",
+            "299"
           ]
         }
       ]
@@ -2973,6 +3511,15 @@
             "175343",
             "175345"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "175"
+          ]
         }
       ]
     }
@@ -3015,6 +3562,15 @@
             "134311",
             "134317"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "134"
+          ]
         }
       ]
     }
@@ -3048,6 +3604,15 @@
             "146309",
             "146310"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "146"
+          ]
         }
       ]
     }
@@ -3080,6 +3645,16 @@
             "176322",
             "176324",
             "176325"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "176",
+            "294"
           ]
         }
       ]
@@ -3117,6 +3692,16 @@
             "294381",
             "294382"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "175",
+            "294"
+          ]
         }
       ]
     }
@@ -3151,6 +3736,15 @@
             "245304",
             "245305"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "245"
+          ]
         }
       ]
     }
@@ -3180,6 +3774,18 @@
             "200315",
             "200361",
             "294381"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "145",
+            "150",
+            "200",
+            "294"
           ]
         }
       ]
@@ -3214,6 +3820,16 @@
         {
           "type": "COURSE",
           "course_code": "294350"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "200",
+            "294"
+          ]
         }
       ]
     }
@@ -3247,6 +3863,16 @@
             "178360",
             "178370",
             "178380"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115",
+            "178"
           ]
         }
       ]
@@ -3290,6 +3916,22 @@
             "275320",
             "276330"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "249",
+            "254",
+            "263",
+            "264",
+            "269",
+            "275",
+            "276"
+          ]
         }
       ]
     }
@@ -3323,6 +3965,16 @@
             "139362",
             "139376",
             "299329"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "139",
+            "299"
           ]
         }
       ]
@@ -3361,6 +4013,15 @@
             "300310",
             "300311",
             "300312"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "300"
           ]
         }
       ]
@@ -3404,6 +4065,16 @@
             "161380",
             "161390",
             "161391"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "161",
+            "297"
           ]
         }
       ]
@@ -3475,6 +4146,15 @@
             "230110",
             "230191"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 90,
+          "course_codes": [],
+          "label": "Free electives (90cr) - choose from any Massey courses",
+          "subject_hint": [
+            "230"
+          ]
         }
       ]
     }
@@ -3530,6 +4210,16 @@
             "197753",
             "212453"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 315,
+          "course_codes": [],
+          "label": "Free electives (315cr) - choose from any Massey courses",
+          "subject_hint": [
+            "197",
+            "212"
+          ]
         }
       ]
     }
@@ -3574,6 +4264,17 @@
             "150303",
             "150304",
             "269332"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "139",
+            "150",
+            "269"
           ]
         }
       ]
@@ -3635,6 +4336,15 @@
             "115897",
             "115898"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115"
+          ]
         }
       ]
     }
@@ -3695,6 +4405,15 @@
             "115897",
             "115898"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115"
+          ]
         }
       ]
     }
@@ -3749,6 +4468,16 @@
             "197753",
             "198453"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 315,
+          "course_codes": [],
+          "label": "Free electives (315cr) - choose from any Massey courses",
+          "subject_hint": [
+            "197",
+            "198"
+          ]
         }
       ]
     }
@@ -3801,6 +4530,16 @@
           "course_codes": [
             "197753",
             "224453"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 315,
+          "course_codes": [],
+          "label": "Free electives (315cr) - choose from any Massey courses",
+          "subject_hint": [
+            "197",
+            "224"
           ]
         }
       ]
@@ -3856,6 +4595,16 @@
             "197753",
             "221453"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 315,
+          "course_codes": [],
+          "label": "Free electives (315cr) - choose from any Massey courses",
+          "subject_hint": [
+            "197",
+            "221"
+          ]
         }
       ]
     }
@@ -3908,6 +4657,16 @@
           "course_codes": [
             "197753",
             "223453"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 315,
+          "course_codes": [],
+          "label": "Free electives (315cr) - choose from any Massey courses",
+          "subject_hint": [
+            "197",
+            "223"
           ]
         }
       ]
@@ -3968,6 +4727,16 @@
             "197753",
             "222453"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 315,
+          "course_codes": [],
+          "label": "Free electives (315cr) - choose from any Massey courses",
+          "subject_hint": [
+            "197",
+            "222"
+          ]
         }
       ]
     }
@@ -4020,6 +4789,16 @@
           "course_codes": [
             "197753",
             "296453"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 315,
+          "course_codes": [],
+          "label": "Free electives (315cr) - choose from any Massey courses",
+          "subject_hint": [
+            "197",
+            "296"
           ]
         }
       ]
@@ -4142,6 +4921,25 @@
             "197753",
             "293453"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 315,
+          "course_codes": [],
+          "label": "Free electives (315cr) - choose from any Massey courses",
+          "subject_hint": [
+            "197",
+            "198",
+            "212",
+            "213",
+            "221",
+            "222",
+            "223",
+            "224",
+            "293",
+            "296",
+            "298"
+          ]
         }
       ]
     }
@@ -4185,6 +4983,16 @@
           "course_codes": [
             "298730",
             "298753"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 315,
+          "course_codes": [],
+          "label": "Free electives (315cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "298"
           ]
         }
       ]
@@ -4324,6 +5132,15 @@
             "115895",
             "115897",
             "115898"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115"
           ]
         }
       ]
@@ -4653,6 +5470,17 @@
             "250809",
             "250816"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "250",
+            "251",
+            "252"
+          ]
         }
       ]
     }
@@ -4687,6 +5515,16 @@
             "150825",
             "150826"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "231"
+          ]
         }
       ]
     }
@@ -4717,6 +5555,16 @@
             "294381",
             "294382"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "175",
+            "294"
+          ]
         }
       ]
     }
@@ -4746,6 +5594,15 @@
             "176322",
             "176324",
             "176325"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "176"
           ]
         }
       ]
@@ -4782,6 +5639,15 @@
             "139362",
             "139376"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "139"
+          ]
         }
       ]
     }
@@ -4803,6 +5669,16 @@
             "200301",
             "294310",
             "294350"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "200",
+            "294"
           ]
         }
       ]
@@ -4837,6 +5713,16 @@
             "154311",
             "154313",
             "299323"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "154",
+            "299"
           ]
         }
       ]
@@ -4874,6 +5760,15 @@
             "172372",
             "172373",
             "172375"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "172"
           ]
         }
       ]
@@ -4965,6 +5860,17 @@
         {
           "type": "COURSE",
           "course_code": "234360"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "151",
+            "152",
+            "234"
+          ]
         }
       ]
     }
@@ -5018,6 +5924,16 @@
         {
           "type": "COURSE",
           "course_code": "234346"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "151",
+            "234"
+          ]
         }
       ]
     }
@@ -5071,6 +5987,16 @@
         {
           "type": "COURSE",
           "course_code": "234361"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "151",
+            "234"
+          ]
         }
       ]
     }
@@ -5080,7 +6006,14 @@
     "url": "https://www.massey.ac.nz/study/all-qualifications-and-degrees/graduate-certificate-in-arts-GCART/without-specialisation-GCART1EWOSP1/",
     "requirement": {
       "type": "ALL_OF",
-      "children": []
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses"
+        }
+      ]
     }
   },
   {
@@ -5118,6 +6051,21 @@
             "275320",
             "276330"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "249",
+            "254",
+            "263",
+            "269",
+            "275",
+            "276"
+          ]
         }
       ]
     }
@@ -5145,6 +6093,20 @@
             "178370",
             "179320",
             "200301"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "131",
+            "145",
+            "176",
+            "178",
+            "179",
+            "200"
           ]
         }
       ]
@@ -5181,6 +6143,15 @@
             "241304",
             "241305",
             "241395"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "241"
           ]
         }
       ]
@@ -5255,6 +6226,15 @@
             "148339",
             "148346"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "148"
+          ]
         }
       ]
     }
@@ -5282,6 +6262,15 @@
             "242302",
             "242304",
             "242305"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "242"
           ]
         }
       ]
@@ -5312,6 +6301,17 @@
         {
           "type": "COURSE",
           "course_code": "263331"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [],
+          "label": "Free electives (45cr) - choose from any Massey courses",
+          "subject_hint": [
+            "175",
+            "256",
+            "263"
+          ]
         }
       ]
     }
@@ -5393,6 +6393,18 @@
             "200361",
             "294381"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "145",
+            "150",
+            "200",
+            "294"
+          ]
         }
       ]
     }
@@ -5429,6 +6441,15 @@
             "134309",
             "134311",
             "134317"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "134"
           ]
         }
       ]
@@ -5550,6 +6571,15 @@
             "146309",
             "146310"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "146"
+          ]
         }
       ]
     }
@@ -5584,6 +6614,15 @@
             "161390",
             "161391"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "161"
+          ]
         }
       ]
     }
@@ -5613,6 +6652,15 @@
             "245303",
             "245304",
             "245305"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 75,
+          "course_codes": [],
+          "label": "Free electives (75cr) - choose from any Massey courses",
+          "subject_hint": [
+            "245"
           ]
         }
       ]
@@ -5648,6 +6696,18 @@
             "125364",
             "127245",
             "127378"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "110",
+            "115",
+            "125",
+            "127"
           ]
         }
       ]
@@ -5826,6 +6886,23 @@
           "course_codes": [
             "298730",
             "298753"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "133",
+            "150",
+            "197",
+            "198",
+            "213",
+            "237",
+            "289",
+            "293",
+            "298"
           ]
         }
       ]
@@ -6055,6 +7132,16 @@
             "150304",
             "269332"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "269"
+          ]
         }
       ]
     }
@@ -6102,6 +7189,17 @@
             "156339",
             "156340",
             "219311"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 210,
+          "course_codes": [],
+          "label": "Free electives (210cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115",
+            "156",
+            "219"
           ]
         }
       ]
@@ -6151,6 +7249,16 @@
             "115388",
             "115389"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "110",
+            "115"
+          ]
         }
       ]
     }
@@ -6190,6 +7298,15 @@
             "125342",
             "125351",
             "125365"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "125"
           ]
         }
       ]
@@ -6356,6 +7473,15 @@
             "218770",
             "218780"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "218"
+          ]
         }
       ]
     }
@@ -6398,6 +7524,15 @@
             "218769",
             "218780",
             "218781"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "218"
           ]
         }
       ]
@@ -6442,6 +7577,15 @@
             "218780",
             "218781"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "218"
+          ]
         }
       ]
     }
@@ -6468,6 +7612,16 @@
             "218715",
             "218717",
             "218769"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "127",
+            "218"
           ]
         }
       ]
@@ -6511,6 +7665,15 @@
             "218765",
             "218769",
             "218770"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "218"
           ]
         }
       ]
@@ -6639,6 +7802,15 @@
             "276785",
             "276731"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "276"
+          ]
         }
       ]
     }
@@ -6656,6 +7828,15 @@
             "258720",
             "258722",
             "258725"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "258"
           ]
         }
       ]
@@ -6696,6 +7877,15 @@
             "249770",
             "249771"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "249"
+          ]
         }
       ]
     }
@@ -6733,6 +7923,16 @@
             "115892",
             "115894",
             "115895"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "110",
+            "115"
           ]
         }
       ]
@@ -6839,6 +8039,17 @@
             "156897",
             "156898"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115",
+            "152",
+            "156"
+          ]
         }
       ]
     }
@@ -6896,6 +8107,17 @@
             "219887",
             "219897",
             "219898"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115",
+            "152",
+            "219"
           ]
         }
       ]
@@ -7021,6 +8243,15 @@
         {
           "type": "COURSE",
           "course_code": "241305"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 210,
+          "course_codes": [],
+          "label": "Free electives (210cr) - choose from any Massey courses",
+          "subject_hint": [
+            "241"
+          ]
         }
       ]
     }
@@ -7224,6 +8455,16 @@
             "299329",
             "299333"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "139",
+            "299"
+          ]
         }
       ]
     }
@@ -7272,6 +8513,16 @@
             "201317",
             "201318",
             "201320"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 255,
+          "course_codes": [],
+          "label": "Free electives (255cr) - choose from any Massey courses",
+          "subject_hint": [
+            "134",
+            "201"
           ]
         }
       ]
@@ -7339,6 +8590,16 @@
             "178312",
             "178328"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 255,
+          "course_codes": [],
+          "label": "Free electives (255cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115",
+            "178"
+          ]
         }
       ]
     }
@@ -7405,6 +8666,22 @@
             "132305",
             "176308"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "121",
+            "131",
+            "132",
+            "134",
+            "145",
+            "146",
+            "150",
+            "176"
+          ]
         }
       ]
     }
@@ -7453,6 +8730,22 @@
             "275304",
             "275320",
             "276330"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 255,
+          "course_codes": [],
+          "label": "Free electives (255cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "249",
+            "254",
+            "263",
+            "264",
+            "269",
+            "275",
+            "276"
           ]
         }
       ]
@@ -7506,6 +8799,19 @@
             "175306",
             "249384"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "175",
+            "249",
+            "256",
+            "263",
+            "275"
+          ]
         }
       ]
     }
@@ -7542,6 +8848,15 @@
             "242302",
             "242304",
             "242305"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "242"
           ]
         }
       ]
@@ -7584,6 +8899,16 @@
             "154311",
             "154313",
             "299323"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "154",
+            "299"
           ]
         }
       ]
@@ -7634,6 +8959,17 @@
             "145318",
             "233303"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "121",
+            "145",
+            "233"
+          ]
         }
       ]
     }
@@ -7672,6 +9008,15 @@
             "148334",
             "148339",
             "148346"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "148"
           ]
         }
       ]
@@ -7718,6 +9063,15 @@
         {
           "type": "COURSE",
           "course_code": "160318"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "160"
+          ]
         }
       ]
     }
@@ -7765,6 +9119,15 @@
             "134309",
             "134311",
             "134317"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "134"
           ]
         }
       ]
@@ -7836,6 +9199,18 @@
             "214312",
             "214314",
             "214316"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "214",
+            "231",
+            "250"
           ]
         }
       ]
@@ -7912,6 +9287,21 @@
             "231307",
             "231308"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [],
+          "label": "Free electives (45cr) - choose from any Massey courses",
+          "subject_hint": [
+            "147",
+            "150",
+            "152",
+            "179",
+            "214",
+            "231",
+            "250"
+          ]
         }
       ]
     }
@@ -7982,6 +9372,21 @@
             "251370",
             "251372",
             "251374"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "114",
+            "128",
+            "150",
+            "214",
+            "231",
+            "250",
+            "251"
           ]
         }
       ]
@@ -8057,6 +9462,19 @@
             "175302",
             "175306",
             "175317"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [],
+          "label": "Free electives (45cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "175",
+            "214",
+            "231",
+            "250"
           ]
         }
       ]
@@ -8136,6 +9554,23 @@
             "231308",
             "234223",
             "252301"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "147",
+            "150",
+            "151",
+            "194",
+            "214",
+            "231",
+            "234",
+            "250",
+            "252"
           ]
         }
       ]
@@ -8419,6 +9854,16 @@
             "151334",
             "194241",
             "194242"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "151",
+            "194"
           ]
         }
       ]
@@ -8733,6 +10178,20 @@
             "123332",
             "141395"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "122",
+            "123",
+            "141",
+            "160",
+            "161",
+            "247"
+          ]
         }
       ]
     }
@@ -8816,6 +10275,24 @@
             "196329",
             "196327"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 90,
+          "course_codes": [],
+          "label": "Free electives (90cr) - choose from any Massey courses",
+          "subject_hint": [
+            "120",
+            "123",
+            "124",
+            "161",
+            "162",
+            "189",
+            "196",
+            "199",
+            "233",
+            "247"
+          ]
         }
       ]
     }
@@ -8882,6 +10359,18 @@
             "159361",
             "159391",
             "159392"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "158",
+            "159",
+            "161",
+            "247"
           ]
         }
       ]
@@ -8958,6 +10447,22 @@
           "course_codes": [
             "196327",
             "199310"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "123",
+            "124",
+            "161",
+            "162",
+            "196",
+            "199",
+            "214",
+            "247"
           ]
         }
       ]
@@ -9050,6 +10555,26 @@
             "122301",
             "196318"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "120",
+            "122",
+            "123",
+            "124",
+            "161",
+            "162",
+            "189",
+            "196",
+            "199",
+            "203",
+            "214",
+            "247"
+          ]
         }
       ]
     }
@@ -9119,6 +10644,23 @@
         {
           "type": "COURSE",
           "course_code": "233314"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 135,
+          "course_codes": [],
+          "label": "Free electives (135cr) - choose from any Massey courses",
+          "subject_hint": [
+            "121",
+            "123",
+            "124",
+            "161",
+            "188",
+            "189",
+            "196",
+            "233",
+            "247"
+          ]
         }
       ]
     }
@@ -9164,6 +10706,17 @@
         {
           "type": "COURSE",
           "course_code": "233314"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "121",
+            "196",
+            "233"
+          ]
         }
       ]
     }
@@ -9216,6 +10769,18 @@
             "160302",
             "160314",
             "160318"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "159",
+            "160",
+            "161",
+            "247"
           ]
         }
       ]
@@ -9282,6 +10847,22 @@
         {
           "type": "COURSE",
           "course_code": "203311"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 150,
+          "course_codes": [],
+          "label": "Free electives (150cr) - choose from any Massey courses",
+          "subject_hint": [
+            "122",
+            "123",
+            "124",
+            "161",
+            "162",
+            "203",
+            "247",
+            "280"
+          ]
         }
       ]
     }
@@ -9359,6 +10940,25 @@
             "151333",
             "151334"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "122",
+            "123",
+            "124",
+            "151",
+            "161",
+            "162",
+            "175",
+            "194",
+            "214",
+            "234",
+            "247"
+          ]
         }
       ]
     }
@@ -9433,6 +11033,21 @@
             "175313",
             "175314"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "123",
+            "124",
+            "161",
+            "175",
+            "233",
+            "234",
+            "247"
+          ]
         }
       ]
     }
@@ -9506,6 +11121,24 @@
         {
           "type": "COURSE",
           "course_code": "122102"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "120",
+            "122",
+            "123",
+            "124",
+            "161",
+            "162",
+            "196",
+            "203",
+            "247",
+            "284"
+          ]
         }
       ]
     }
@@ -9568,6 +11201,19 @@
             "161380",
             "161390",
             "161391"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 165,
+          "course_codes": [],
+          "label": "Free electives (165cr) - choose from any Massey courses",
+          "subject_hint": [
+            "159",
+            "160",
+            "161",
+            "233",
+            "247"
           ]
         }
       ]
@@ -9639,6 +11285,15 @@
         {
           "type": "COURSE",
           "course_code": "190318"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [],
+          "label": "Free electives (45cr) - choose from any Massey courses",
+          "subject_hint": [
+            "190"
+          ]
         }
       ]
     }
@@ -9668,6 +11323,15 @@
         {
           "type": "COURSE",
           "course_code": "218770"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [],
+          "label": "Free electives (45cr) - choose from any Massey courses",
+          "subject_hint": [
+            "218"
+          ]
         }
       ]
     }
@@ -9697,6 +11361,15 @@
         {
           "type": "COURSE",
           "course_code": "218781"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [],
+          "label": "Free electives (45cr) - choose from any Massey courses",
+          "subject_hint": [
+            "218"
+          ]
         }
       ]
     }
@@ -9726,6 +11399,15 @@
         {
           "type": "COURSE",
           "course_code": "218781"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [],
+          "label": "Free electives (45cr) - choose from any Massey courses",
+          "subject_hint": [
+            "218"
+          ]
         }
       ]
     }
@@ -9763,6 +11445,15 @@
             "218780",
             "218781"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [],
+          "label": "Free electives (45cr) - choose from any Massey courses",
+          "subject_hint": [
+            "218"
+          ]
         }
       ]
     }
@@ -9782,6 +11473,16 @@
             "218715",
             "218717",
             "218730"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 45,
+          "course_codes": [],
+          "label": "Free electives (45cr) - choose from any Massey courses",
+          "subject_hint": [
+            "127",
+            "218"
           ]
         }
       ]
@@ -10073,6 +11774,36 @@
             "284301",
             "284342"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "117",
+            "119",
+            "120",
+            "121",
+            "122",
+            "123",
+            "138",
+            "141",
+            "159",
+            "160",
+            "161",
+            "162",
+            "189",
+            "196",
+            "199",
+            "203",
+            "233",
+            "246",
+            "247",
+            "280",
+            "283",
+            "284"
+          ]
         }
       ]
     }
@@ -10150,6 +11881,22 @@
             "280771",
             "287741"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 330,
+          "course_codes": [],
+          "label": "Free electives (330cr) - choose from any Massey courses",
+          "subject_hint": [
+            "112",
+            "123",
+            "124",
+            "141",
+            "160",
+            "238",
+            "280",
+            "287"
+          ]
         }
       ]
     }
@@ -10191,6 +11938,19 @@
             "280702",
             "280771"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 330,
+          "course_codes": [],
+          "label": "Free electives (330cr) - choose from any Massey courses",
+          "subject_hint": [
+            "123",
+            "124",
+            "141",
+            "160",
+            "280"
+          ]
         }
       ]
     }
@@ -10225,6 +11985,15 @@
             "133390",
             "133391"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "133"
+          ]
         }
       ]
     }
@@ -10258,6 +12027,15 @@
             "133389",
             "133390",
             "133391"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "133"
           ]
         }
       ]
@@ -10308,6 +12086,15 @@
             "133390",
             "133391"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "133"
+          ]
         }
       ]
     }
@@ -10325,6 +12112,15 @@
             "265736",
             "265737",
             "265738"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "265"
           ]
         }
       ]
@@ -10464,6 +12260,15 @@
             "261765",
             "261766"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "261"
+          ]
         }
       ]
     }
@@ -10481,6 +12286,16 @@
             "254770",
             "259771",
             "259772"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "254",
+            "259"
           ]
         }
       ]
@@ -10505,6 +12320,16 @@
             "298330",
             "298360",
             "298367"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "298"
           ]
         }
       ]
@@ -10581,6 +12406,15 @@
             "172373",
             "172375"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "172"
+          ]
         }
       ]
     }
@@ -10625,6 +12459,15 @@
             "146308",
             "146309",
             "146310"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 255,
+          "course_codes": [],
+          "label": "Free electives (255cr) - choose from any Massey courses",
+          "subject_hint": [
+            "146"
           ]
         }
       ]
@@ -10676,6 +12519,17 @@
             "161380",
             "161390",
             "161391"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 255,
+          "course_codes": [],
+          "label": "Free electives (255cr) - choose from any Massey courses",
+          "subject_hint": [
+            "161",
+            "233",
+            "297"
           ]
         }
       ]
@@ -10729,6 +12583,18 @@
             "200303",
             "200315",
             "200361"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 195,
+          "course_codes": [],
+          "label": "Free electives (195cr) - choose from any Massey courses",
+          "subject_hint": [
+            "145",
+            "150",
+            "200",
+            "294"
           ]
         }
       ]
@@ -10790,6 +12656,15 @@
             "175343",
             "175345"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "175"
+          ]
         }
       ]
     }
@@ -10829,6 +12704,15 @@
             "245303",
             "245304",
             "245305"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "245"
           ]
         }
       ]
@@ -10876,6 +12760,16 @@
             "176324",
             "176325"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 255,
+          "course_codes": [],
+          "label": "Free electives (255cr) - choose from any Massey courses",
+          "subject_hint": [
+            "176",
+            "294"
+          ]
         }
       ]
     }
@@ -10919,6 +12813,16 @@
             "294350",
             "294381",
             "294382"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "175",
+            "294"
           ]
         }
       ]
@@ -11003,6 +12907,17 @@
             "175313",
             "175314"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "114",
+            "152",
+            "175"
+          ]
         }
       ]
     }
@@ -11040,6 +12955,15 @@
             "300310",
             "300311",
             "300312"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "300"
           ]
         }
       ]
@@ -11091,6 +13015,15 @@
             "139352",
             "139362",
             "139376"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "139"
           ]
         }
       ]
@@ -11161,6 +13094,15 @@
         {
           "type": "COURSE",
           "course_code": "289333"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -11184,6 +13126,16 @@
             "298330",
             "298360",
             "298367"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "298"
           ]
         }
       ]
@@ -11214,6 +13166,15 @@
         {
           "type": "COURSE",
           "course_code": "289333"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -11243,6 +13204,15 @@
         {
           "type": "COURSE",
           "course_code": "289333"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -11272,6 +13242,15 @@
         {
           "type": "COURSE",
           "course_code": "289333"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -11324,6 +13303,18 @@
             "150304",
             "269332"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 210,
+          "course_codes": [],
+          "label": "Free electives (210cr) - choose from any Massey courses",
+          "subject_hint": [
+            "139",
+            "150",
+            "269",
+            "300"
+          ]
         }
       ]
     }
@@ -11353,6 +13344,15 @@
         {
           "type": "COURSE",
           "course_code": "289333"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -11382,6 +13382,15 @@
         {
           "type": "COURSE",
           "course_code": "289333"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 270,
+          "course_codes": [],
+          "label": "Free electives (270cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -11440,6 +13449,15 @@
             "178328",
             "178360"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "178"
+          ]
         }
       ]
     }
@@ -11470,6 +13488,17 @@
             "115389",
             "152252",
             "152336"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "114",
+            "115",
+            "152"
           ]
         }
       ]
@@ -11505,6 +13534,17 @@
             "115389",
             "127378"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115",
+            "127",
+            "155"
+          ]
         }
       ]
     }
@@ -11536,6 +13576,18 @@
             "114254",
             "115389",
             "152261"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "114",
+            "115",
+            "152",
+            "157"
           ]
         }
       ]
@@ -11581,6 +13633,21 @@
             "243301",
             "245301"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "114",
+            "115",
+            "152",
+            "241",
+            "242",
+            "243",
+            "245"
+          ]
         }
       ]
     }
@@ -11611,6 +13678,19 @@
             "114240",
             "115389",
             "158235"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "114",
+            "115",
+            "152",
+            "157",
+            "158"
           ]
         }
       ]
@@ -11664,6 +13744,19 @@
             "157394",
             "178311"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "110",
+            "115",
+            "156",
+            "157",
+            "178"
+          ]
         }
       ]
     }
@@ -11689,6 +13782,15 @@
         {
           "type": "COURSE",
           "course_code": "218744"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "218"
+          ]
         }
       ]
     }
@@ -11739,6 +13841,15 @@
         {
           "type": "COURSE",
           "course_code": "249752"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 105,
+          "course_codes": [],
+          "label": "Free electives (105cr) - choose from any Massey courses",
+          "subject_hint": [
+            "249"
+          ]
         }
       ]
     }
@@ -11764,6 +13875,16 @@
         {
           "type": "COURSE",
           "course_code": "249755"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "249",
+            "267"
+          ]
         }
       ]
     }
@@ -11789,6 +13910,16 @@
         {
           "type": "COURSE",
           "course_code": "249763"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "249",
+            "267"
+          ]
         }
       ]
     }
@@ -11810,6 +13941,16 @@
         {
           "type": "COURSE",
           "course_code": "262760"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 165,
+          "course_codes": [],
+          "label": "Free electives (165cr) - choose from any Massey courses",
+          "subject_hint": [
+            "249",
+            "262"
+          ]
         }
       ]
     }
@@ -11835,6 +13976,16 @@
         {
           "type": "COURSE",
           "course_code": "249748"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "249",
+            "267"
+          ]
         }
       ]
     }
@@ -11868,6 +14019,16 @@
         {
           "type": "COURSE",
           "course_code": "249773"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "249",
+            "267"
+          ]
         }
       ]
     }
@@ -11901,6 +14062,16 @@
         {
           "type": "COURSE",
           "course_code": "249774"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "249",
+            "267"
+          ]
         }
       ]
     }
@@ -11952,6 +14123,16 @@
             "267872",
             "267881",
             "267882"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "249",
+            "267"
           ]
         }
       ]
@@ -12078,6 +14259,16 @@
             "250816",
             "250817"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 90,
+          "course_codes": [],
+          "label": "Free electives (90cr) - choose from any Massey courses",
+          "subject_hint": [
+            "234",
+            "250"
+          ]
         }
       ]
     }
@@ -12107,6 +14298,16 @@
             "250813",
             "250816",
             "250817"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 90,
+          "course_codes": [],
+          "label": "Free electives (90cr) - choose from any Massey courses",
+          "subject_hint": [
+            "214",
+            "250"
           ]
         }
       ]
@@ -13207,6 +15408,15 @@
             "148816",
             "148817"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "148"
+          ]
         }
       ]
     }
@@ -13234,6 +15444,15 @@
             "294798",
             "294799"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "294"
+          ]
         }
       ]
     }
@@ -13260,6 +15479,15 @@
             "294744",
             "294798",
             "294799"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "294"
           ]
         }
       ]
@@ -13341,6 +15569,19 @@
             "122202",
             "194243"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 210,
+          "course_codes": [],
+          "label": "Free electives (210cr) - choose from any Massey courses",
+          "subject_hint": [
+            "117",
+            "122",
+            "123",
+            "162",
+            "194"
+          ]
         }
       ]
     }
@@ -13372,6 +15613,19 @@
             "194243",
             "199203"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 210,
+          "course_codes": [],
+          "label": "Free electives (210cr) - choose from any Massey courses",
+          "subject_hint": [
+            "117",
+            "123",
+            "162",
+            "194",
+            "199"
+          ]
         }
       ]
     }
@@ -13399,6 +15653,15 @@
             "294798",
             "294799"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "294"
+          ]
         }
       ]
     }
@@ -13421,6 +15684,16 @@
             "286251",
             "286301",
             "286321"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "117",
+            "286"
           ]
         }
       ]
@@ -13458,6 +15731,17 @@
           "course_codes": [
             "117302",
             "283301"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 240,
+          "course_codes": [],
+          "label": "Free electives (240cr) - choose from any Massey courses",
+          "subject_hint": [
+            "117",
+            "122",
+            "283"
           ]
         }
       ]
@@ -13771,6 +16055,17 @@
             "218346",
             "218352"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "127",
+            "152",
+            "218"
+          ]
         }
       ]
     }
@@ -13820,6 +16115,17 @@
             "218344",
             "218346",
             "218352"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "127",
+            "152",
+            "218"
           ]
         }
       ]
@@ -13872,6 +16178,17 @@
             "218346",
             "218352"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "127",
+            "152",
+            "218"
+          ]
         }
       ]
     }
@@ -13893,6 +16210,16 @@
             "115775",
             "295701",
             "295705"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115",
+            "295"
           ]
         }
       ]
@@ -13952,6 +16279,25 @@
             "219713",
             "219714",
             "251731"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "110",
+            "114",
+            "115",
+            "125",
+            "152",
+            "156",
+            "157",
+            "178",
+            "190",
+            "219",
+            "251"
           ]
         }
       ]
@@ -14060,6 +16406,16 @@
             "125780",
             "125785"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "125",
+            "156"
+          ]
         }
       ]
     }
@@ -14091,6 +16447,17 @@
             "115815",
             "152810",
             "152894"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 90,
+          "course_codes": [],
+          "label": "Free electives (90cr) - choose from any Massey courses",
+          "subject_hint": [
+            "114",
+            "115",
+            "152"
           ]
         }
       ]
@@ -14136,6 +16503,16 @@
             "115815",
             "152810",
             "152894"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 90,
+          "course_codes": [],
+          "label": "Free electives (90cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115",
+            "152"
           ]
         }
       ]
@@ -14183,6 +16560,17 @@
             "152810",
             "152894"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 90,
+          "course_codes": [],
+          "label": "Free electives (90cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115",
+            "152",
+            "156"
+          ]
         }
       ]
     }
@@ -14218,6 +16606,18 @@
             "152810",
             "152894"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 90,
+          "course_codes": [],
+          "label": "Free electives (90cr) - choose from any Massey courses",
+          "subject_hint": [
+            "114",
+            "115",
+            "152",
+            "157"
+          ]
         }
       ]
     }
@@ -14247,6 +16647,17 @@
             "131816",
             "131817",
             "131897"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "130",
+            "131",
+            "132"
           ]
         }
       ]
@@ -14291,6 +16702,16 @@
             "131817",
             "131897"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "131",
+            "152"
+          ]
         }
       ]
     }
@@ -14321,6 +16742,17 @@
             "131816",
             "131817",
             "131897"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "131",
+            "188",
+            "238"
           ]
         }
       ]
@@ -14354,6 +16786,18 @@
             "131817",
             "131897"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "131",
+            "132",
+            "176",
+            "200"
+          ]
         }
       ]
     }
@@ -14381,6 +16825,16 @@
             "131816",
             "131817",
             "131897"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "131",
+            "178"
           ]
         }
       ]
@@ -14413,6 +16867,17 @@
             "152810",
             "152894"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 90,
+          "course_codes": [],
+          "label": "Free electives (90cr) - choose from any Massey courses",
+          "subject_hint": [
+            "115",
+            "152",
+            "178"
+          ]
         }
       ]
     }
@@ -14443,6 +16908,19 @@
             "131816",
             "131817",
             "131897"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses",
+          "subject_hint": [
+            "131",
+            "249",
+            "254",
+            "259",
+            "269"
           ]
         }
       ]
@@ -14491,6 +16969,26 @@
             "119381",
             "120303",
             "199310"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 135,
+          "course_codes": [],
+          "label": "Free electives (135cr) - choose from any Massey courses",
+          "subject_hint": [
+            "112",
+            "114",
+            "119",
+            "120",
+            "121",
+            "138",
+            "189",
+            "199",
+            "247",
+            "283",
+            "284",
+            "285"
           ]
         }
       ]
@@ -14549,6 +17047,29 @@
             "203311",
             "247300",
             "284342"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 135,
+          "course_codes": [],
+          "label": "Free electives (135cr) - choose from any Massey courses",
+          "subject_hint": [
+            "119",
+            "120",
+            "121",
+            "122",
+            "123",
+            "138",
+            "162",
+            "196",
+            "203",
+            "233",
+            "246",
+            "247",
+            "283",
+            "284",
+            "285"
           ]
         }
       ]
@@ -14791,6 +17312,15 @@
             "294798",
             "294799"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "294"
+          ]
         }
       ]
     }
@@ -14835,6 +17365,15 @@
             "294894",
             "294895"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "294"
+          ]
         }
       ]
     }
@@ -14862,6 +17401,15 @@
             "294798",
             "294799"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "294"
+          ]
         }
       ]
     }
@@ -14888,6 +17436,15 @@
             "294744",
             "294798",
             "294799"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "294"
           ]
         }
       ]
@@ -15090,6 +17647,16 @@
             "125897",
             "125898"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "125",
+            "178"
+          ]
         }
       ]
     }
@@ -15142,6 +17709,16 @@
             "125895",
             "125897",
             "125898"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "125",
+            "178"
           ]
         }
       ]
@@ -15196,6 +17773,16 @@
             "125895",
             "125897",
             "125898"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "125",
+            "178"
           ]
         }
       ]
@@ -15313,6 +17900,16 @@
             "154313",
             "299323"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "154",
+            "299"
+          ]
         }
       ]
     }
@@ -15349,6 +17946,15 @@
             "172372",
             "172373",
             "172375"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "172"
           ]
         }
       ]
@@ -15436,6 +18042,15 @@
             "139362",
             "139376"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "139"
+          ]
         }
       ]
     }
@@ -15465,6 +18080,15 @@
             "176322",
             "176324",
             "176325"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "176"
           ]
         }
       ]
@@ -15496,6 +18120,16 @@
             "294381",
             "294382"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "175",
+            "294"
+          ]
         }
       ]
     }
@@ -15505,7 +18139,14 @@
     "url": "https://www.massey.ac.nz/study/all-qualifications-and-degrees/graduate-diploma-in-arts-GDART/without-specialisation-GDART1EWOSP1/",
     "requirement": {
       "type": "ALL_OF",
-      "children": []
+      "children": [
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 120,
+          "course_codes": [],
+          "label": "Free electives (120cr) - choose from any Massey courses"
+        }
+      ]
     }
   },
   {
@@ -15524,6 +18165,17 @@
           "course_codes": [
             "168711",
             "179702"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "168",
+            "179",
+            "214"
           ]
         }
       ]
@@ -15647,6 +18299,20 @@
             "178370",
             "179320",
             "200301"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "131",
+            "145",
+            "176",
+            "178",
+            "179",
+            "200"
           ]
         }
       ]
@@ -15773,6 +18439,21 @@
             "275320",
             "276330"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "249",
+            "254",
+            "263",
+            "269",
+            "275",
+            "276"
+          ]
         }
       ]
     }
@@ -15848,6 +18529,15 @@
             "148339",
             "148346"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "148"
+          ]
         }
       ]
     }
@@ -15885,6 +18575,15 @@
             "134311",
             "134317"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "134"
+          ]
         }
       ]
     }
@@ -15912,6 +18611,15 @@
             "242302",
             "242304",
             "242305"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "242"
           ]
         }
       ]
@@ -15944,6 +18652,18 @@
             "200315",
             "200361",
             "294381"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "145",
+            "150",
+            "200",
+            "294"
           ]
         }
       ]
@@ -15989,6 +18709,18 @@
             "175306",
             "249384"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "175",
+            "249",
+            "256",
+            "263"
+          ]
         }
       ]
     }
@@ -16022,6 +18754,20 @@
             "121310",
             "131321",
             "132305"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "121",
+            "131",
+            "132",
+            "134",
+            "145",
+            "176"
           ]
         }
       ]
@@ -16065,6 +18811,15 @@
             "175343",
             "175345"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "175"
+          ]
         }
       ]
     }
@@ -16102,6 +18857,15 @@
             "146309",
             "146310"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "146"
+          ]
         }
       ]
     }
@@ -16132,6 +18896,15 @@
             "245304",
             "245305"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "245"
+          ]
         }
       ]
     }
@@ -16157,6 +18930,15 @@
             "161380",
             "161390",
             "161391"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "161"
           ]
         }
       ]
@@ -16245,6 +19027,24 @@
             "119258",
             "283201"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 195,
+          "course_codes": [],
+          "label": "Free electives (195cr) - choose from any Massey courses",
+          "subject_hint": [
+            "112",
+            "117",
+            "119",
+            "138",
+            "152",
+            "161",
+            "189",
+            "247",
+            "283",
+            "285"
+          ]
         }
       ]
     }
@@ -16285,6 +19085,24 @@
             "152252",
             "156232",
             "178360"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "112",
+            "115",
+            "117",
+            "119",
+            "125",
+            "138",
+            "152",
+            "156",
+            "161",
+            "178"
           ]
         }
       ]
@@ -16436,6 +19254,15 @@
         {
           "type": "COURSE",
           "course_code": "289803"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 300,
+          "course_codes": [],
+          "label": "Free electives (300cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -16465,6 +19292,15 @@
         {
           "type": "COURSE",
           "course_code": "190335"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "190"
+          ]
         }
       ]
     }
@@ -16502,6 +19338,15 @@
         {
           "type": "COURSE",
           "course_code": "289803"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 300,
+          "course_codes": [],
+          "label": "Free electives (300cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -16539,6 +19384,15 @@
         {
           "type": "COURSE",
           "course_code": "289803"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 300,
+          "course_codes": [],
+          "label": "Free electives (300cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -16576,6 +19430,15 @@
         {
           "type": "COURSE",
           "course_code": "289803"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 300,
+          "course_codes": [],
+          "label": "Free electives (300cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -16613,6 +19476,15 @@
         {
           "type": "COURSE",
           "course_code": "289803"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 300,
+          "course_codes": [],
+          "label": "Free electives (300cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -16638,6 +19510,16 @@
             "298367",
             "298730",
             "298753"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 315,
+          "course_codes": [],
+          "label": "Free electives (315cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "298"
           ]
         }
       ]
@@ -16674,6 +19556,23 @@
             "138255",
             "152261",
             "189251"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 180,
+          "course_codes": [],
+          "label": "Free electives (180cr) - choose from any Massey courses",
+          "subject_hint": [
+            "119",
+            "120",
+            "138",
+            "152",
+            "161",
+            "189",
+            "247",
+            "284",
+            "285"
           ]
         }
       ]
@@ -16712,6 +19611,15 @@
         {
           "type": "COURSE",
           "course_code": "289803"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 300,
+          "course_codes": [],
+          "label": "Free electives (300cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -16737,6 +19645,15 @@
             "218831",
             "218832"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "218"
+          ]
         }
       ]
     }
@@ -16761,6 +19678,15 @@
             "218830",
             "218831",
             "218832"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 30,
+          "course_codes": [],
+          "label": "Free electives (30cr) - choose from any Massey courses",
+          "subject_hint": [
+            "218"
           ]
         }
       ]
@@ -16793,6 +19719,20 @@
             "189362",
             "247220"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 210,
+          "course_codes": [],
+          "label": "Free electives (210cr) - choose from any Massey courses",
+          "subject_hint": [
+            "121",
+            "123",
+            "162",
+            "188",
+            "189",
+            "247"
+          ]
         }
       ]
     }
@@ -16823,6 +19763,19 @@
             "233313",
             "233314",
             "247220"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 210,
+          "course_codes": [],
+          "label": "Free electives (210cr) - choose from any Massey courses",
+          "subject_hint": [
+            "121",
+            "123",
+            "162",
+            "233",
+            "247"
           ]
         }
       ]
@@ -16890,6 +19843,15 @@
             "222369",
             "222372"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "222"
+          ]
         }
       ]
     }
@@ -16937,6 +19899,15 @@
             "212100",
             "212101"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "212"
+          ]
         }
       ]
     }
@@ -16981,6 +19952,15 @@
           "course_codes": [
             "224157",
             "224158"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "224"
           ]
         }
       ]
@@ -17028,6 +20008,15 @@
             "221158",
             "221100"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "221"
+          ]
         }
       ]
     }
@@ -17073,6 +20062,15 @@
             "223157",
             "223158"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "223"
+          ]
         }
       ]
     }
@@ -17110,6 +20108,15 @@
         {
           "type": "COURSE",
           "course_code": "289803"
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 300,
+          "course_codes": [],
+          "label": "Free electives (300cr) - choose from any Massey courses",
+          "subject_hint": [
+            "289"
+          ]
         }
       ]
     }
@@ -17145,6 +20152,16 @@
             "298358",
             "298360",
             "298367"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "150",
+            "298"
           ]
         }
       ]
@@ -17190,6 +20207,15 @@
           "course_codes": [
             "296157",
             "296158"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "296"
           ]
         }
       ]
@@ -17301,6 +20327,23 @@
             "293305",
             "293306"
           ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "198",
+            "212",
+            "221",
+            "222",
+            "223",
+            "224",
+            "293",
+            "296",
+            "298"
+          ]
         }
       ]
     }
@@ -17346,6 +20389,15 @@
             "198157",
             "198158",
             "198124"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 225,
+          "course_codes": [],
+          "label": "Free electives (225cr) - choose from any Massey courses",
+          "subject_hint": [
+            "198"
           ]
         }
       ]
@@ -17679,6 +20731,23 @@
             "213357",
             "213358",
             "213370"
+          ]
+        },
+        {
+          "type": "CHOOSE_CREDITS",
+          "credits": 60,
+          "course_codes": [],
+          "label": "Free electives (60cr) - choose from any Massey courses",
+          "subject_hint": [
+            "133",
+            "150",
+            "197",
+            "198",
+            "213",
+            "237",
+            "289",
+            "293",
+            "298"
           ]
         }
       ]

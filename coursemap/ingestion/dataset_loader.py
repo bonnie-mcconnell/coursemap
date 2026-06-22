@@ -67,8 +67,11 @@ _SEMESTER_MAP: dict[str, str] = {
 
 _MULTI_SEMESTER_MAP: dict[str, list[str]] = {
     "Double Semester": ["S1", "S2"],
-    "Full Year": ["S1", "S2"],
+    "Full Year": ["S1", "S2"],  # both expand to two offerings; full_year flag distinguishes them
 }
+
+# Semester labels that mean the student MUST enrol for the whole academic year (S1+S2 as a unit).
+_FULL_YEAR_LABELS: frozenset[str] = frozenset({"Full Year"})
 
 # Maps raw campus codes from the scraper to the canonical planner campus code.
 # All known campus codes map to themselves; unknown values fall back to "D".
@@ -215,8 +218,10 @@ def parse_offerings(raw: list | None) -> tuple[Offering, ...]:
 
         # Multi-semester entries expand into one Offering per semester code.
         if raw_semester in _MULTI_SEMESTER_MAP:
+            is_full_year = raw_semester in _FULL_YEAR_LABELS
             for sem_code in _MULTI_SEMESTER_MAP[raw_semester]:
-                offerings.append(Offering(semester=sem_code, campus=campus, mode=mode))
+                offerings.append(Offering(semester=sem_code, campus=campus, mode=mode,
+                                          full_year=is_full_year))
             continue
 
         sem_code = _SEMESTER_MAP.get(raw_semester)
@@ -531,6 +536,8 @@ def load_courses() -> dict[str, Course]:
                 restrictions=_parse_code_set(item.get("restrictions", []), own_code=code),
                 url=item.get("url") or None,
                 description=item.get("intro") or item.get("description") or None,
+                subject_area=item.get("subject_area") or None,
+                offering_inferred=bool(item.get("offering_data_inferred", False)),
             )
         except Exception as exc:
             logger.warning(
