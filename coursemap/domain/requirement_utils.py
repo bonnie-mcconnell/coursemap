@@ -80,6 +80,26 @@ def collect_degree_elective_nodes(
     return out
 
 
+def collect_course_node_codes(node: RequirementNode) -> set[str]:
+    """
+    Collect codes from COURSE requirement nodes only, ignoring pool members.
+
+    Unlike collect_course_codes, this does not recurse into ChooseCreditsRequirement
+    nodes. Used to find codes that are individually required (COURSE nodes) even
+    when those same codes also appear in elective pools.
+    """
+    if isinstance(node, CourseRequirement):
+        return {node.course_code}
+    if isinstance(node, (AllOfRequirement, AnyOfRequirement)):
+        result: set[str] = set()
+        for child in node.children:
+            result |= collect_course_node_codes(child)
+        return result
+    if isinstance(node, MajorRequirement):
+        return collect_course_node_codes(node.requirement)
+    return set()
+
+
 def collect_major_nodes(node: RequirementNode) -> list[MajorRequirement]:
     """Recursively collect all MAJOR nodes at any depth."""
     out: list[MajorRequirement] = []
@@ -174,6 +194,8 @@ def select_free_electives(
     for code, course in courses.items():
         if code in all_excluded or code in seen:
             continue
+        if course.credits <= 0:
+            continue  # skip zero-credit practicums
         if not any(o.campus == campus and o.mode == mode for o in course.offerings):
             continue
         if course.level > 300 or course.level > max_planned_level + 100:
@@ -186,15 +208,26 @@ def select_free_electives(
 
     candidates.sort()
 
+    # Two-pass selection:
+    # Pass 1 - preferred and prefix-matching courses in sort order (best fit first).
+    # Pass 2 - if still under gap, add remaining courses sorted by credits ascending
+    #           (smallest first) so we can pack the gap precisely.
     selected: list[tuple[int, str, str]] = []
+    selected_codes: set[str] = set()
     running = 0
+
     for _, _, level, code, title in candidates:
+        if running >= gap:
+            break
         cr = courses[code].credits
+        # Skip courses that would push us too far over the gap.
+        # Allow a single course to exceed the gap by at most one course worth
+        # of credits (15cr typically) - this prevents the selector getting stuck
+        # just under the gap when only larger courses are left.
         if running + cr > gap + 30:
             continue
         selected.append((level, code, title))
+        selected_codes.add(code)
         running += cr
-        if running >= gap:
-            break
 
     return selected

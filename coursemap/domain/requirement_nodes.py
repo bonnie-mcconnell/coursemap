@@ -5,7 +5,7 @@ Each node implements is_satisfied(plan) to evaluate against a degree plan.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from .plan import DegreePlan
 
 
@@ -50,12 +50,48 @@ class AnyOfRequirement(RequirementNode):
 
 @dataclass(frozen=True)
 class ChooseCreditsRequirement(RequirementNode):
-    """Choose courses totaling a specified credit amount from a list."""
+    """
+    Choose courses totaling a specified credit amount from a list.
+
+    When ``course_codes`` is empty AND ``open_pool=True``, this represents an
+    unrestricted free-elective requirement (e.g. "choose any 150cr of Massey
+    courses") rather than an impossible-to-satisfy pool with zero options.
+    This distinction matters: an empty `course_codes` tuple is ambiguous on
+    its own (it could mean "no eligible courses exist" or "any course is
+    eligible"), so `open_pool` makes the intended meaning explicit instead of
+    relying on callers to infer it from context.
+
+    For an open pool, satisfaction is judged by counting credits from any
+    course in the plan that isn't already claimed by a more specific
+    requirement elsewhere in the tree. Since this node has no way to know
+    what else the tree requires, `is_satisfied` approximates by counting
+    credits from courses NOT in `excluded_codes` (courses already counted by
+    other parts of the tree) - set by the caller before checking.
+    """
 
     credits: int
     course_codes: tuple[str, ...]
+    open_pool: bool = False
+    excluded_codes: frozenset[str] = field(default_factory=frozenset)
 
     def is_satisfied(self, plan: DegreePlan) -> bool:
+        if self.credits <= 0:
+            return True
+
+        if self.open_pool and not self.course_codes:
+            claimed = self.excluded_codes
+            total = sum(
+                course.credits
+                for semester in plan.semesters
+                for course in semester.courses
+                if course.code not in claimed
+            )
+            total += sum(
+                c.credits for c in plan.prior_completed
+                if c.code not in claimed
+            )
+            return total >= self.credits
+
         allowed = set(self.course_codes)
         total = sum(
             course.credits
@@ -97,6 +133,10 @@ class MinLevelCreditsRequirement(RequirementNode):
             for course in semester.courses:
                 if course.level == self.level:
                     total += course.credits
+        # Also count prior-completed courses at this level
+        total += sum(
+            c.credits for c in plan.prior_completed if c.level == self.level
+        )
         return total >= self.min_credits
 
 
@@ -116,6 +156,11 @@ class MinLevelCreditsFromRequirement(RequirementNode):
             for course in semester.courses
             if course.code in allowed and course.level == self.level
         )
+        # Also count prior-completed courses from the allowed set at this level
+        total += sum(
+            c.credits for c in plan.prior_completed
+            if c.code in allowed and c.level == self.level
+        )
         return total >= self.min_credits
 
 
@@ -132,6 +177,10 @@ class MaxLevelCreditsRequirement(RequirementNode):
             for course in semester.courses:
                 if course.level == self.level:
                     total += course.credits
+        # Also count prior-completed courses at this level
+        total += sum(
+            c.credits for c in plan.prior_completed if c.level == self.level
+        )
         return total <= self.max_credits
 
 
@@ -142,7 +191,8 @@ class TotalCreditsRequirement(RequirementNode):
     required_credits: int
 
     def is_satisfied(self, plan: DegreePlan) -> bool:
-        return plan.total_credits() + plan.prior_credits() >= self.required_credits
+        # Include transfer credits (prior learning) in the total
+        return plan.total_credits() + plan.all_prior_credits() >= self.required_credits
 
 
 @dataclass(frozen=True)

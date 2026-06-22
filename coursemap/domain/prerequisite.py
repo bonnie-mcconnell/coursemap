@@ -67,6 +67,19 @@ class OrExpression(PrerequisiteExpression):
         return any(child.is_satisfied(completed) for child in self.children)
 
     def required_courses(self) -> set[str]:
+        """
+        Return ALL codes mentioned in any branch (union).
+
+        WARNING: this is NOT "all codes that must be completed" - for an OR
+        expression, only ONE branch needs to be satisfied. Callers that need
+        "which codes are truly required" should use _prereq_codes_or_aware()
+        from planner/generator.py or ElectiveFiller._prereqs_satisfiable(),
+        both of which return the intersection of OR branches.
+
+        This method returns the full union for use cases that genuinely need
+        all mentioned codes (e.g. building a complete prerequisite graph for
+        display, or checking if a code appears anywhere in the expression).
+        """
         return reduce(set.__or__, (c.required_courses() for c in self.children), set())
 
 

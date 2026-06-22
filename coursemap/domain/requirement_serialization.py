@@ -39,6 +39,7 @@ def requirement_to_dict(node: RequirementNode) -> dict:
             "type": "CHOOSE_CREDITS",
             "credits": node.credits,
             "course_codes": list(node.course_codes),
+            "open_pool": node.open_pool,
         }
     if isinstance(node, ChooseNRequirement):
         return {
@@ -92,21 +93,33 @@ def requirement_from_dict(data: dict) -> RequirementNode:
     if typ == "COURSE":
         return CourseRequirement(course_code=_sanitize_code(data["course_code"]))
     if typ == "ALL_OF":
-        children = [requirement_from_dict(c) for c in data["children"]]
+        raw_children = data.get("children", [])
+        if not raw_children:
+            raise ValueError("ALL_OF requirement must have at least one child")
+        children = [requirement_from_dict(c) for c in raw_children]
         return AllOfRequirement(children=tuple(children))
     if typ == "ANY_OF":
-        children = [requirement_from_dict(c) for c in data["children"]]
+        raw_children = data.get("children", [])
+        if not raw_children:
+            raise ValueError("ANY_OF requirement must have at least one child")
+        children = [requirement_from_dict(c) for c in raw_children]
         return AnyOfRequirement(children=tuple(children))
     if typ == "CHOOSE_CREDITS":
-        return ChooseCreditsRequirement(
-            credits=int(data["credits"]),
-            course_codes=tuple(_sanitize_code(c) for c in data["course_codes"]),
-        )
+        credits = int(data["credits"])
+        if credits < 0:
+            raise ValueError(f"CHOOSE_CREDITS credits must be non-negative, got {credits}")
+        codes = tuple(_sanitize_code(c) for c in data.get("course_codes", []))
+        # An empty course_codes list with positive credits is unambiguous in
+        # the source data: it always means "choose freely," never "no courses
+        # qualify" (a genuinely-impossible pool wouldn't be authored at all).
+        open_pool = data.get("open_pool", not codes and credits > 0)
+        return ChooseCreditsRequirement(credits=credits, course_codes=codes, open_pool=open_pool)
     if typ == "CHOOSE_N":
-        return ChooseNRequirement(
-            n=int(data["n"]),
-            course_codes=tuple(_sanitize_code(c) for c in data["course_codes"]),
-        )
+        n = int(data["n"])
+        if n < 1:
+            raise ValueError(f"CHOOSE_N n must be at least 1, got {n}")
+        codes = tuple(_sanitize_code(c) for c in data.get("course_codes", []))
+        return ChooseNRequirement(n=n, course_codes=codes)
     if typ == "MIN_LEVEL_CREDITS":
         return MinLevelCreditsRequirement(
             level=int(data["level"]),
@@ -126,6 +139,10 @@ def requirement_from_dict(data: dict) -> RequirementNode:
     if typ == "TOTAL_CREDITS":
         return TotalCreditsRequirement(required_credits=int(data["required_credits"]))
     if typ == "MAJOR":
+        if "name" not in data:
+            raise ValueError("MAJOR requirement dict missing 'name' field")
+        if "requirement" not in data:
+            raise ValueError("MAJOR requirement dict missing 'requirement' field")
         return MajorRequirement(
             name=data["name"],
             requirement=requirement_from_dict(data["requirement"]),
