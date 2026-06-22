@@ -16,6 +16,7 @@ by year. Students should check massey.ac.nz for official dates.
 """
 from __future__ import annotations
 
+import re
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -42,7 +43,13 @@ _SEMESTER_WEEKS: dict[str, int] = {
 
 
 def _semester_dates(year: int, sem: str) -> tuple[date, date]:
-    """Return (start, end) dates for a given year and semester type."""
+    """
+    Return (start, end) dates for a given year and semester type.
+
+    Summer School starts in late November of ``year`` and ends in early
+    February of ``year + 1``.  The date constructor handles year-end rollover
+    automatically via timedelta addition.
+    """
     m, d = _SEMESTER_START[sem]
     start = date(year, m, d)
     end   = start + timedelta(weeks=_SEMESTER_WEEKS[sem])
@@ -122,14 +129,16 @@ def plan_to_ical(
         description = _escape_ical_text(raw_description)
 
         summary = f"{semester.year} {semester.semester} – {total_cr}cr ({major_label})"
-        uid = (
-            f"coursemap-{major_label.replace(' ', '')}-"
-            f"{semester.year}-{semester.semester}-{i}@massey"
-        )
+        # Sanitise UID: keep only ASCII alphanumerics, hyphens, dots, @
+        _label_safe = re.sub(r"[^A-Za-z0-9]", "-", major_label)
+        _label_safe = re.sub(r"-+", "-", _label_safe).strip("-")[:40]
+        uid = f"coursemap-{_label_safe}-{semester.year}-{semester.semester}-{i}@massey"
 
         lines += [
             "BEGIN:VEVENT",
             f"UID:{uid}",
+            f"DTSTAMP:{date.today().strftime('%Y%m%dT000000Z')}",
+            "SEQUENCE:0",
             f"DTSTART;VALUE=DATE:{start.strftime('%Y%m%d')}",
             f"DTEND;VALUE=DATE:{end.strftime('%Y%m%d')}",
             _fold(f"SUMMARY:{_escape_ical_text(summary)}"),
