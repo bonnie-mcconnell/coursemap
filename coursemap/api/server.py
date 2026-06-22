@@ -22,22 +22,45 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from coursemap.domain.prerequisite import prereq_to_dict, prereq_to_human
+from coursemap.domain.requirement_nodes import (
+    AllOfRequirement, AnyOfRequirement, ChooseCreditsRequirement,
+    ChooseNRequirement, CourseRequirement, MajorRequirement,
+    MaxLevelCreditsRequirement, MinLevelCreditsFromRequirement,
+    MinLevelCreditsRequirement, TotalCreditsRequirement,
+)
 from coursemap.ingestion.dataset_loader import load_courses, load_majors
+from coursemap.ingestion.minor_loader import load_minors, search_minors
 from coursemap.ingestion.freshness import freshness_report
 from coursemap.services.planner_service import PlannerService
 from coursemap.validation.dataset_validator import validate_dataset
 from coursemap.export.ical import plan_to_ical
-from coursemap.api.plan_store import plan_store
+from coursemap.domain.fees import estimate_plan_fees, fee_per_credit, estimate_course_fee
+from coursemap.api.plan_store import plan_store, async_get as _astore_get, async_put as _astore_put
+from coursemap.services.plan_export_service import PlanExportService as _PlanExportSvc
 
 logger = logging.getLogger(__name__)
 
 _UI_HTML = (Path(__file__).parent / "ui.html").read_text(encoding="utf-8")
 
 
+# Bump when planner logic changes in a way that makes cached plans stale
+_CACHE_VERSION = "v7.1"
+
+
 def _plan_cache_key(req: "PlanRequest") -> str:
-    """Return a stable 16-char hex key for a plan request (excludes seed field)."""
+    """
+    Return a stable 16-char hex key for a plan request (excludes seed field).
+
+    Includes _CACHE_VERSION in the hashed payload so that any backend logic
+    or response-shape change (a version bump) automatically invalidates all
+    previously cached plans, rather than serving stale `meta` fields from
+    before the change. This replaces the old approach of patching individual
+    fields on cache-hit, which could silently drift out of sync with fresh
+    generation logic (see _build_gap_meta).
+    """
     d = req.model_dump()
     d.pop("seed", None)  # seed is metadata, not part of the plan identity
+    d["_cache_version"] = _CACHE_VERSION
     payload = json.dumps(d, sort_keys=True, default=str)
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
@@ -61,7 +84,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="coursemap",
     description="Degree planner API for Massey University.",
-    version="2.0.0",
+    version="7.0.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -69,6 +92,23 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(Exception)
+async def _global_exception_handler(request: Request, exc: Exception) -> Response:
+    """Return clean JSON on any unhandled exception instead of a 500 traceback."""
+    if isinstance(exc, HTTPException):
+        from fastapi.exception_handlers import http_exception_handler
+        return await http_exception_handler(request, exc)
+    import traceback as _tb
+    logger.error("Unhandled %s on %s %s:\n%s",
+                 type(exc).__name__, request.method, request.url.path, _tb.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={"error": "internal_server_error", "detail": str(exc),
+                 "path": str(request.url.path)},
+    )
+
 
 # ALLOWED_ORIGINS: comma-separated list of allowed origins for CORS.
 # Defaults to "*" (open) for local dev. Set to your deployed domain in production.
@@ -107,6 +147,11 @@ def _courses() -> dict:
     return _svc().courses
 
 
+@lru_cache(maxsize=1)
+def _minors() -> list:
+    return load_minors()
+
+
 # ---------------------------------------------------------------------------
 # Request / response schemas
 # ---------------------------------------------------------------------------
@@ -121,7 +166,7 @@ class PlanRequest(BaseModel):
     campus: str = Field("D", description="Campus code: D, M, A, W.")
     mode: str = Field("DIS", description="Delivery mode: DIS, INT, BLK.")
     completed: list[str] = Field(default_factory=list, description="Already-completed course codes.")
-    transfer_credits: int = Field(0, ge=0, description="Prior-learning credit recognition.")
+    transfer_credits: int = Field(0, ge=0, le=360, description="Prior-learning credit recognition (0–360cr).")
     prefer: list[str] = Field(default_factory=list, description="Elective codes to prioritise.")
     exclude: list[str] = Field(default_factory=list, description="Course codes to never schedule.")
     no_summer: bool = Field(True, description="Skip Summer School semesters.")
@@ -153,19 +198,20 @@ def _course_to_dict(course) -> dict:
     # Distinct semesters this course runs in (any campus/mode)
     offered_sems = sorted(set(o.semester for o in course.offerings))
     return {
-        "code":    course.code,
-        "title":   course.title,
-        "credits": course.credits,
-        "level":   course.level,
-        "url":     course.url,
-        "description": course.description,
+        "code":         course.code,
+        "title":        course.title,
+        "credits":      course.credits,
+        "level":        course.level,
+        "url":          course.url,
+        "description":  course.description,
+        "subject_area": getattr(course, "subject_area", None),
         "offered_semesters": offered_sems,
         "offerings": [
             {
                 "semester":      o.semester,
-                "campus":        getattr(o, "campus_code", getattr(o, "campus", "")),
-                "mode":          getattr(o, "delivery_mode", getattr(o, "mode", "")),
-                "location":      getattr(o, "location", None),
+                "campus":        o.campus,
+                "mode":          o.mode,
+                "location":      o.location,
             }
             for o in course.offerings
         ],
@@ -175,7 +221,147 @@ def _course_to_dict(course) -> dict:
         "prerequisite_expression": prereq_to_dict(course.prerequisites),
         "restrictions":            list(course.restrictions or []),
         "corequisites":            list(course.corequisites or []),
+        "offering_inferred":       getattr(course, "offering_inferred", False),
+        "has_full_year_offering":  any(getattr(o, "full_year", False) for o in course.offerings),
     }
+
+
+def _build_gap_meta(
+    plan, svc: PlannerService, req: PlanRequest,
+    resolved_name: str, double_info: dict | None,
+) -> dict[str, Any]:
+    """
+    Compute the free-elective gap, degree target, and a human-readable
+    explanation of why any remaining gap exists.
+
+    Returns a dict with keys: degree_total, raw_gap, residual_gap, gap_explanation.
+    """
+    major_name = req.major
+    gap          = svc.free_elective_gap(major_name, campus=req.campus, mode=req.mode)
+    degree_total = svc.degree_total_credits(major_name)
+
+    # raw_gap: the major's structural gap (what the major data alone requires),
+    # net of any transfer credits already counted toward the degree.
+    raw_gap = max(0, gap - plan.transfer_credits)
+
+    # residual_gap: credits still unscheduled. This is 0 once the plan total
+    # reaches the degree target, regardless of *how* it got filled (explicit
+    # auto-fill, or PlanSearch's own elective selection during generation).
+    credits_total = plan.total_credits() + plan.prior_credits() + plan.transfer_credits
+    if req.auto_fill or credits_total >= degree_total:
+        residual_gap = max(0, degree_total - credits_total)
+    else:
+        residual_gap = raw_gap
+
+    gap_explanation: str | None = None
+    if residual_gap > 0 and not req.auto_fill:
+        if double_info:
+            gap_explanation = (
+                f"{residual_gap}cr of free electives remain after double major overlap. "
+                "Enable Auto-fill to fill these automatically."
+            )
+        else:
+            name_lc = resolved_name.lower()
+            if "information sciences" in name_lc:
+                gap_explanation = (
+                    f"{residual_gap}cr of free electives are required. "
+                    "BInfSc typically expects a second major to fill this gap - "
+                    "add one below, or enable Auto-fill to select courses automatically."
+                )
+            elif "bachelor of science" in name_lc or "bachelor of arts" in name_lc:
+                gap_explanation = (
+                    f"{residual_gap}cr of free electives are required. "
+                    "BSc/BA students typically add a second major or minor. "
+                    "Enable Auto-fill or add a second major to complete your plan."
+                )
+            else:
+                gap_explanation = (
+                    f"{residual_gap}cr of free electives are unscheduled. "
+                    "Enable Auto-fill to select courses automatically."
+                )
+
+    return {
+        "degree_total":     degree_total,
+        "raw_gap":          raw_gap,
+        "residual_gap":     residual_gap,
+        "gap_explanation":  gap_explanation,
+    }
+
+
+def _build_prereq_coverage(plan) -> dict[str, Any]:
+    """Summarise prerequisite-data coverage across every scheduled course."""
+    all_scheduled = [c for s in plan.semesters for c in s.courses]
+    total   = len(all_scheduled)
+    with_data = sum(1 for c in all_scheduled if c.prerequisites is not None)
+    missing   = [c.code for c in all_scheduled if c.prerequisites is None and c.level >= 200]
+    return {
+        "total_courses":      total,
+        "courses_with_data":  with_data,
+        "coverage_pct":       round(100 * with_data / total) if total else 100,
+        "missing_data_codes": missing[:20],  # cap at 20 for response size
+    }
+
+
+def _build_plan_warnings(
+    plan, svc: PlannerService, req: PlanRequest, extra_warnings: list[str] | None,
+) -> list[str]:
+    """Collect every user-facing warning for a generated plan."""
+    major_name = req.major
+    warnings: list[str] = list(extra_warnings or [])
+
+    # Required courses unavailable at the chosen campus/mode.
+    try:
+        all_required = svc.required_course_codes(major_name)
+        scheduled    = {c.code for s in plan.semesters for c in s.courses}
+        not_avail    = [
+            code for code in all_required
+            if code not in scheduled and code not in frozenset(req.completed or [])
+        ]
+        courses_map  = _courses()
+        campus_unavail = [
+            code for code in not_avail
+            if code in courses_map
+            and not any(
+                o.campus == req.campus and o.mode == req.mode
+                for o in courses_map[code].offerings
+            )
+        ]
+        if campus_unavail:
+            warnings.append(
+                f"⚠ {len(campus_unavail)} required course(s) are not available at "
+                f"{req.campus}/{req.mode} and were excluded from this plan: "
+                f"{', '.join(sorted(campus_unavail)[:5])}"
+                + (f" (and {len(campus_unavail)-5} more)" if len(campus_unavail) > 5 else "")
+                + ". Try a different campus or delivery mode."
+            )
+    except Exception:
+        pass  # non-fatal; best-effort warning only
+
+    # Required courses the student explicitly excluded.
+    if req.exclude:
+        excl_req = svc.student_excluded_required_courses(
+            major_name, frozenset(req.exclude), campus=req.campus, mode=req.mode
+        )
+        if excl_req:
+            warnings.append(
+                f"Excluded course(s) are required by this degree: {', '.join(excl_req)}. "
+                "Major requirements will NOT be satisfied."
+            )
+
+    # Full Year courses - must enrol for all of S1+S2, not just one semester.
+    full_year_codes = [
+        c.code for s in plan.semesters for c in s.courses
+        if any(getattr(o, "full_year", False) for o in c.offerings)
+    ]
+    if full_year_codes:
+        warnings.append(
+            f"⚠ {len(full_year_codes)} course(s) run the full academic year (S1+S2 combined enrolment): "
+            + ", ".join(full_year_codes[:5])
+            + (f" and {len(full_year_codes)-5} more" if len(full_year_codes) > 5 else "")
+            + ". Verify enrolment requirements at massey.ac.nz before treating them as a single semester."
+        )
+
+    return warnings
 
 
 def _plan_to_out(
@@ -187,6 +373,13 @@ def _plan_to_out(
     extra_warnings: list[str] | None = None,
     plan_id: str = "",
 ) -> PlanOut:
+    """
+    Serialise a generated DegreePlan into the API's PlanOut response shape.
+
+    Orchestrates four independent concerns, each delegated to a helper:
+    gap/meta calculation, prerequisite coverage stats, warning collection,
+    and double-major info formatting.
+    """
     semesters_out = [
         SemesterOut(
             year=s.year,
@@ -197,66 +390,35 @@ def _plan_to_out(
         for s in plan.semesters
     ]
 
-    major_name = req.major
-    filler     = filler_codes or []
+    filler = filler_codes or []
 
-    # Resolve canonical name, gap, and degree total in one shot
     try:
-        resolved     = svc.resolve_major(major_name)
+        resolved      = svc.resolve_major(req.major)
         resolved_name = resolved[0]["name"]
     except (ValueError, IndexError):
-        resolved_name = major_name
+        resolved_name = req.major
 
-    gap          = svc.free_elective_gap(major_name, campus=req.campus, mode=req.mode)
-    degree_total = svc.degree_total_credits(major_name)
-    # If auto_fill was requested and filler codes were injected, the gap has
-    # been addressed by the planner. Show the residual gap (total target minus
-    # total credits actually scheduled) rather than the raw major-data gap.
-    raw_gap = max(0, gap - plan.transfer_credits)
-    if filler and req.auto_fill:
-        credits_total = plan.total_credits() + plan.prior_credits() + plan.transfer_credits
-        residual_gap = max(0, degree_total - credits_total)
-    else:
-        residual_gap = raw_gap
+    gap_info = _build_gap_meta(plan, svc, req, resolved_name, double_info)
 
     meta: dict[str, Any] = {
-        "major":            resolved_name,
-        "campus":           req.campus,
-        "mode":             req.mode,
-        "start_year":       req.start_year,
-        "start_semester":   req.start_semester,
-        "credits_planned":  plan.total_credits(),
-        "credits_prior":    plan.prior_credits(),
-        "credits_transfer": plan.transfer_credits,
-        "credits_total":    plan.total_credits() + plan.prior_credits() + plan.transfer_credits,
-        "degree_target":    degree_total,
-        "free_elective_gap": residual_gap,
-        "raw_elective_gap":  raw_gap,
+        "major":             resolved_name,
+        "campus":            req.campus,
+        "mode":              req.mode,
+        "start_year":        req.start_year,
+        "start_semester":    req.start_semester,
+        "credits_planned":   plan.total_credits(),
+        "credits_prior":     plan.prior_credits(),
+        "credits_transfer":  plan.transfer_credits,
+        "credits_total":     plan.total_credits() + plan.prior_credits() + plan.transfer_credits,
+        "degree_target":     gap_info["degree_total"],
+        "free_elective_gap": gap_info["residual_gap"],
+        "raw_elective_gap":  gap_info["raw_gap"],
+        "gap_explanation":   gap_info["gap_explanation"],
         "auto_filled_codes": filler if req.auto_fill else [],
+        "prereq_coverage":   _build_prereq_coverage(plan),
     }
 
-    # Compute prerequisite data coverage across all scheduled courses
-    all_scheduled = [c for s in plan.semesters for c in s.courses]
-    _total_courses   = len(all_scheduled)
-    _with_data       = sum(1 for c in all_scheduled if c.prerequisites is not None)
-    _missing_data    = [c.code for c in all_scheduled if c.prerequisites is None and c.level >= 200]
-    meta["prereq_coverage"] = {
-        "total_courses":       _total_courses,
-        "courses_with_data":   _with_data,
-        "coverage_pct":        round(100 * _with_data / _total_courses) if _total_courses else 100,
-        "missing_data_codes":  _missing_data[:20],  # cap at 20 for response size
-    }
-
-    warnings: list[str] = list(extra_warnings or [])
-    if req.exclude:
-        excl_req = svc.student_excluded_required_courses(
-            major_name, frozenset(req.exclude), campus=req.campus, mode=req.mode
-        )
-        if excl_req:
-            warnings.append(
-                f"Excluded course(s) are required by this degree: {', '.join(excl_req)}. "
-                "Major requirements will NOT be satisfied."
-            )
+    warnings = _build_plan_warnings(plan, svc, req, extra_warnings)
 
     dmi_out: dict | None = None
     if double_info:
@@ -286,9 +448,10 @@ def _execute_plan(req: PlanRequest, svc: PlannerService):
     and /api/plan/ical so flags only need updating in one place.
     Returns (plan, filler_codes, double_info).
     """
-    prior     = frozenset(req.completed)
-    preferred = frozenset(req.prefer)
-    excluded  = frozenset(req.exclude)
+    # Normalise course codes: strip whitespace and uppercase
+    prior     = frozenset(c.strip().upper() for c in req.completed if c.strip())
+    preferred = frozenset(c.strip().upper() for c in req.prefer    if c.strip())
+    excluded  = frozenset(c.strip().upper() for c in req.exclude   if c.strip())
     common    = dict(
         max_credits_per_semester  = req.max_credits,
         max_courses_per_semester  = req.max_per_semester,
@@ -321,6 +484,74 @@ def _execute_plan(req: PlanRequest, svc: PlannerService):
 
     plan = svc.generate_best_plan(major_name=req.major, **common)
     return plan, [], None
+
+
+
+# ---------------------------------------------------------------------------
+# Plan comparison endpoint
+# ---------------------------------------------------------------------------
+
+class CompareRequest(BaseModel):
+    majors: list[str] = Field(..., min_length=2, max_length=4,
+                               description="2–4 major names to compare side by side.")
+    campus: str = Field("D")
+    mode:   str = Field("DIS")
+    start_year: int = Field(default_factory=lambda: _date.today().year)
+    start_semester: str = Field("S1")
+    max_credits: int = Field(60, ge=15, le=120)
+    no_summer: bool = Field(True)
+    completed: list[str] = Field(default_factory=list)
+
+
+@app.post("/api/plan/compare", summary="Compare plans for 2–4 majors side by side")
+@limiter.limit("10/minute")
+def compare_plans(request: Request, req: CompareRequest):
+    """
+    Generate summary plans for 2–4 majors and return key metrics for each.
+
+    Useful for students deciding between majors. Each entry reports semesters
+    required, free elective gap, prerequisite data coverage, and how many
+    courses overlap with the first major in the list.
+    """
+    svc = _svc()
+    prior = frozenset(req.completed)
+    results = []
+    first_plan_codes: set[str] | None = None
+
+    for major_name in req.majors:
+        try:
+            resolved = svc.resolve_major(major_name)
+            canon = resolved[0]["name"]
+            plan = svc.generate_best_plan(
+                major_name=major_name,
+                campus=req.campus, mode=req.mode,
+                start_year=req.start_year, start_semester=req.start_semester,
+                max_credits_per_semester=req.max_credits,
+                no_summer=req.no_summer,
+                prior_completed=prior,
+            )
+            plan_codes = {c.code for s in plan.semesters for c in s.courses}
+            total_cr    = plan.total_credits() + plan.prior_credits()
+            degree_tgt  = svc.degree_total_credits(major_name)
+            gap         = svc.free_elective_gap(major_name, campus=req.campus, mode=req.mode)
+            all_courses = [c for s in plan.semesters for c in s.courses]
+            with_prereq = sum(1 for c in all_courses if c.prerequisites is not None)
+            shared      = len(plan_codes & first_plan_codes) if first_plan_codes else 0
+            if first_plan_codes is None:
+                first_plan_codes = plan_codes
+            results.append({
+                "major": canon, "error": None,
+                "semesters": len(plan.semesters),
+                "credits_scheduled": total_cr,
+                "degree_target": degree_tgt,
+                "free_elective_gap": gap,
+                "prereq_coverage_pct": round(100 * with_prereq / len(all_courses)) if all_courses else 100,
+                "shared_with_first": shared,
+            })
+        except Exception as exc:
+            results.append({"major": major_name, "error": str(exc)})
+
+    return {"comparisons": results}
 
 
 # ---------------------------------------------------------------------------
@@ -411,6 +642,26 @@ def data_quality_report():
     }
 
 
+
+
+@app.get("/api/health", summary="Health check", tags=["meta"])
+def health_check():
+    """Returns service health status and data freshness."""
+    try:
+        svc = _svc()
+        courses = _courses()
+        fr = freshness_report()
+        return {
+            "status": "ok",
+            "courses_loaded": len(courses),
+            "majors_loaded": len(svc.majors),
+            "dataset": fr,
+        }
+    except Exception as exc:
+        return JSONResponse(status_code=503, content={"status": "error", "detail": str(exc)})
+
+_specs_cache_store: dict = {}  # populated lazily on first /api/majors call
+
 @app.get("/api/majors", summary="List or search majors")
 @limiter.limit("200/minute")
 def list_majors(
@@ -428,23 +679,42 @@ def list_majors(
             return all(any(w in tok for tok in tokens) for w in words)
         majors = [m for m in majors if word_match(m["name"])]
 
-    majors = sorted(majors, key=lambda m: m["name"])[:limit]
+    majors_all = sorted(majors, key=lambda m: m["name"])
+    total_count = len(majors_all)
+    majors = majors_all[:limit]
 
     def _parse_qual(name: str) -> str:
         """Extract qualification type from major name: 'CS – Bachelor of Science' → 'Bachelor of Science'."""
         parts = re.split(r"\s+[\u2013\u2014-]\s+", name, maxsplit=1)
         return parts[1].strip() if len(parts) > 1 else ""
 
+    # Load specialisation metadata for richer major info
+    if not _specs_cache_store:
+        import json as _json
+        from pathlib import Path as _Path
+        _specs_path = _Path(__file__).resolve().parents[2] / "datasets" / "specialisations.json"
+        if _specs_path.exists():
+            for _s in _json.loads(_specs_path.read_text(encoding="utf-8")):
+                _specs_cache_store[_s["title"]] = _s
+    _specs_cache = _specs_cache_store
+
+    def _enrich(m: dict) -> dict:
+        name = m["name"]
+        spec = _specs_cache.get(name, {})
+        return {
+            "name":               name,
+            "url":                m.get("url", ""),
+            "qualification_type": _parse_qual(name),
+            "qual_code":          spec.get("qual_code", ""),
+            "level":              spec.get("level", 7),
+            "length_years":       spec.get("length", 3),
+            "credit_target":      spec.get("length", 3) * 120,
+        }
+
     return {
+        "total":  total_count,
         "count":  len(majors),
-        "majors": [
-            {
-                "name":               m["name"],
-                "url":                m.get("url", ""),
-                "qualification_type": _parse_qual(m["name"]),
-            }
-            for m in majors
-        ],
+        "majors": [_enrich(m) for m in majors],
     }
 
 
@@ -461,15 +731,62 @@ def resolve_major(name: str = Query(..., description="Major name (partial match 
     }
 
 
+@app.get("/api/minors", summary="List or search minors")
+def list_minors(
+    search: str | None = Query(None, description="Search by minor name."),
+    data_quality: str | None = Query(None, description="Filter: 'scraped' or 'inferred'."),
+):
+    """Return available minors. Scraped entries have real Massey data; inferred are approximated."""
+    all_minors = _minors()
+    minors = all_minors
+    if search:
+        minors = search_minors(search, minors)
+    if data_quality:
+        minors = [m for m in minors if m.get("data_quality") == data_quality]
+    return {
+        "count": len(minors),
+        "total": len(all_minors),
+        "scraped": sum(1 for m in all_minors if m.get("data_quality") == "scraped"),
+        "inferred": sum(1 for m in all_minors if m.get("data_quality") == "inferred"),
+        "minors": minors,
+        "note": "Inferred minors are approximated from course patterns. Verify at massey.ac.nz/study/minors/",
+    }
+
+
+@app.get("/api/minors/{name}", summary="Get a single minor by name")
+def get_minor(name: str):
+    """Return a single minor's details and requirement tree."""
+    minors = _minors()
+    matches = [m for m in minors if m["name"].lower() == name.lower()]
+    if not matches:
+        matches = [m for m in minors if name.lower() in m["name"].lower()]
+    if not matches:
+        raise HTTPException(status_code=404, detail=f"Minor '{name}' not found.")
+    return matches[0]
+
+
 @app.get("/api/courses", summary="Browse course catalogue")
 def list_courses(
-    search: str | None = Query(None, description="Search by title or course code (keywords)."),
-    level:  int | None = Query(None, description="Filter by level (100, 200, 300, 400, 700, 800, 900)."),
-    campus: str | None = Query(None, description="Filter by campus code (D, M, A, W)."),
-    mode:   str | None = Query(None, description="Filter by delivery mode (DIS, INT, BLK)."),
-    limit:  int        = Query(150, ge=1, le=3000, description="Max results to return."),
+    search:           str | None = Query(None, description="Search by title or course code (keywords). Alias: q."),
+    q:                str | None = Query(None, description="Alias for search."),
+    level:            int | None = Query(None, description="Filter by level (100, 200, 300, 400, 700, 800, 900)."),
+    campus:           str | None = Query(None, description="Filter by campus code (D, M, A, W)."),
+    mode:             str | None = Query(None, description="Filter by delivery mode (DIS, INT, BLK)."),
+    subject_area:     str | None = Query(None, description="Filter by subject area (e.g. 'Computer Science', 'Psychology')."),
+    exclude_research: bool       = Query(False, description="Exclude thesis/research/dissertation courses."),
+    semester:         str | None = Query(None, description="Filter by semester availability (S1, S2, SS)."),
+    min_credits:      int        = Query(0, ge=0, description="Minimum credit value (use 1 to exclude zero-credit courses)."),
+    limit:            int        = Query(150, ge=1, le=3000, description="Max results to return."),
 ):
+    # Allow ?q= as alias for ?search=
+    if q and not search:
+        search = q
+
     courses = list(_courses().values())
+
+    # Always exclude zero-credit admin entries and level 900+ doctoral unless explicitly filtered
+    if level is None:
+        courses = [c for c in courses if c.credits > 0 and c.level < 900]
 
     if search:
         words = search.strip().lower().split()
@@ -484,19 +801,41 @@ def list_courses(
             courses = [c for c in courses if (c.level // 100) * 100 == (level // 100) * 100]
         else:
             courses = [c for c in courses if c.level == level]
+    
+    # Filter by subject area if specified
+    if subject_area:
+        courses = [c for c in courses if getattr(c, "subject_area", None) == subject_area
+                   or subject_area.lower() in (getattr(c, "subject_area", "") or "").lower()]
+
+    # Exclude thesis/research courses if requested (cleaner browse experience)
+    if exclude_research:
+        _research_kw = ('thesis', 'research', 'dissertation', 'phd', 'mphil', 'capstone project')
+        courses = [
+            c for c in courses
+            if not any(kw in c.title.lower() for kw in _research_kw)
+        ]
 
     if campus:
-        # campus_code is the attribute on Offering; campus is the human label
         courses = [c for c in courses if any(
-            getattr(o, "campus_code", getattr(o, "campus", "")) == campus
+            o.campus == campus
             for o in c.offerings
         )]
 
     if mode:
         courses = [c for c in courses if any(
-            getattr(o, "delivery_mode", getattr(o, "mode", "")) == mode
+            o.mode == mode
             for o in c.offerings
         )]
+
+    if semester:
+        sem_upper = semester.upper()
+        courses = [c for c in courses if any(
+            o.semester == sem_upper
+            for o in c.offerings
+        )]
+
+    if min_credits > 0:
+        courses = [c for c in courses if c.credits >= min_credits]
 
     # Only return courses with at least one offering so the modal is useful
     courses = [c for c in courses if c.offerings]
@@ -516,7 +855,13 @@ def get_course(code: str):
     code = code.upper()
     if code not in courses:
         raise HTTPException(status_code=404, detail=f"Course '{code}' not found.")
-    return _course_to_dict(courses[code])
+    result = _course_to_dict(courses[code])
+    if courses[code].credits == 0:
+        result["_note"] = (
+            "Zero-credit course (practicum/placement). "
+            "Cannot be auto-scheduled and does not count toward degree credit totals."
+        )
+    return result
 
 
 @app.get("/api/courses/{code}/prereq-chain", summary="Full prerequisite chain for a course")
@@ -710,7 +1055,10 @@ def generate_plan(request: Request, req: PlanRequest):
     # Compute cache key - deterministic share ID
     plan_key = _plan_cache_key(req)
 
-    # Return cached plan if available (makes shared links deterministic)
+    # Return cached plan if available (makes shared links deterministic).
+    # _CACHE_VERSION is baked into plan_key, so a stale cached entry from
+    # before a logic change simply misses here and falls through to a fresh
+    # generation below - no patch-on-read needed.
     cached = plan_store.get(plan_key)
     if cached is not None:
         return PlanOut(**cached)
@@ -808,7 +1156,35 @@ def generate_plan_stream(request: Request, req: PlanRequest):
             if req.double_major:
                 yield _event({"type": "progress", "step": "generating", "pct": 50, "msg": "Scheduling double major…"})
 
-            plan, filler, double_info = _execute_plan(req, svc)
+            import threading, queue as _queue
+            _result_q: _queue.Queue = _queue.Queue()
+
+            def _run_plan():
+                try:
+                    r = _execute_plan(req, svc)
+                    _result_q.put(("ok", r))
+                except Exception as e:
+                    _result_q.put(("err", e))
+
+            _t = threading.Thread(target=_run_plan, daemon=True)
+            _t.start()
+            _t.join(timeout=60)  # 60s hard ceiling
+
+            if _t.is_alive():
+                yield _event({
+                    "type": "error",
+                    "detail": (
+                        "Plan generation timed out (60s). "
+                        "Try reducing the credit load, adding completed courses, "
+                        "or choosing a simpler major combination."
+                    )
+                })
+                return
+
+            _status, _payload = _result_q.get_nowait()
+            if _status == "err":
+                raise _payload
+            plan, filler, double_info = _payload
 
         except ValueError as exc:
             yield _event({"type": "error", "detail": str(exc)})
@@ -902,6 +1278,140 @@ def generate_plan_ical(request: Request, req: PlanRequest):
     )
 
 
+
+@app.post("/api/plan/fees", summary="Estimate fees for a plan")
+def estimate_fees_for_plan(body: dict, student_type: str = Query("domestic", description="domestic or international")):
+    """
+    Estimate total fees for a plan given a list of semesters.
+    Pass the `semesters` array from a /api/plan response.
+    """
+    from coursemap.domain.fees import estimate_plan_fees
+    semesters = body.get("semesters", [])
+    if not semesters:
+        raise HTTPException(status_code=422, detail="No semesters provided.")
+    return estimate_plan_fees(semesters, student_type=student_type)
+
+
+@app.get("/api/fees/rate", summary="Fee per credit for a subject area")
+def get_fee_rate(
+    subject_area: str | None = Query(None),
+    level: int = Query(100),
+    student_type: str = Query("domestic"),
+):
+    """Return the estimated fee per credit for a subject area at a given level."""
+    return {
+        "subject_area": subject_area,
+        "level": level,
+        "student_type": student_type,
+        "fee_per_credit": fee_per_credit(subject_area, level, student_type),
+    }
+
+
+
+# ---------------------------------------------------------------------------
+# Mid-degree progress check
+# ---------------------------------------------------------------------------
+
+class ProgressRequest(BaseModel):
+    major:     str
+    completed: list[str] = Field(default_factory=list, description="Completed course codes.")
+    campus:    str = Field("D")
+    mode:      str = Field("DIS")
+
+
+@app.post("/api/plan/progress", summary="Check mid-degree progress toward requirements")
+@limiter.limit("30/minute")
+def check_progress(request: Request, req: ProgressRequest):
+    """
+    Given a list of completed course codes, report progress toward degree completion.
+
+    Returns:
+    - credits_completed: credits earned so far
+    - degree_target: total credits required
+    - pct_complete: percentage of degree completed
+    - required_met: list of required courses already done
+    - required_remaining: required courses still needed
+    - gap_remaining: free elective credits still unscheduled
+    - on_track: True if the student's level progression looks reasonable
+      (i.e. not trying to take L300 courses in year 1)
+    """
+    svc = _svc()
+    courses_map = _courses()
+    completed_set = frozenset(c.strip().upper() for c in req.completed if c.strip())
+
+    # Credits earned
+    credits_earned = sum(
+        courses_map[c].credits for c in completed_set
+        if c in courses_map and courses_map[c].credits > 0
+    )
+
+    # Degree target and required codes
+    try:
+        degree_target = svc.degree_total_credits(req.major)
+        required_codes = svc.required_course_codes(req.major)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    required_met       = sorted(required_codes & completed_set)
+    required_remaining = sorted(required_codes - completed_set)
+    pct_complete       = round(100 * credits_earned / degree_target) if degree_target else 0
+
+    # Free elective gap after completed credits
+    raw_gap    = svc.free_elective_gap(req.major, campus=req.campus, mode=req.mode)
+    remaining_credits = max(0, degree_target - credits_earned)
+
+    # Level progression check: warn if student has completed < 60cr but has L300+ courses
+    completed_levels = [courses_map[c].level for c in req.completed if c in courses_map]
+    advanced_without_base = (
+        any(lvl >= 300 for lvl in completed_levels)
+        and credits_earned < 60
+    )
+
+    # Estimated semesters remaining.
+    # Standard Massey load: 60cr/year across 2 semesters = 30cr/semester.
+    # We use 30cr per active semester as the baseline, but cap at 1 semester
+    # minimum when any credits remain, so the estimate is never misleadingly 0.
+    sems_remaining = max(1, -(-remaining_credits // 30)) if remaining_credits > 0 else 0
+
+    return {
+        "major": req.major,
+        "credits_completed": credits_earned,
+        "degree_target": degree_target,
+        "pct_complete": pct_complete,
+        "required_met": required_met,
+        "required_remaining": required_remaining,
+        "required_total": len(required_codes),
+        "required_done_count": len(required_met),
+        "credits_remaining": remaining_credits,
+        "gap_remaining": max(0, raw_gap - credits_earned),
+        "estimated_semesters_remaining": sems_remaining,
+        "on_track": not advanced_without_base,
+        "warnings": (
+            ["⚠ L300+ courses completed before 60cr base - check programme regulations."]
+            if advanced_without_base else []
+        ),
+    }
+
+
+@app.post("/api/reload", summary="Hot-reload datasets without restarting", tags=["meta"])
+def reload_datasets():
+    """
+    Clear the in-process dataset cache and reload from disk.
+    Call this after running the prerequisite scraper or any data refresh script.
+    """
+    _svc.cache_clear()
+    _courses.cache_clear()
+    _minors.cache_clear()
+    _specs_cache_store.clear()
+    # plan_store cache is version-keyed - old plans auto-invalidated on next fetch
+    svc = _svc()  # pre-warm
+    return {
+        "status": "reloaded",
+        "courses_loaded": len(svc.courses),
+        "majors_loaded": len(svc.majors),
+    }
+
+
 @app.get("/api/validate", summary="Dataset integrity report")
 def validate():
     svc = _svc()
@@ -917,10 +1427,127 @@ def validate():
 
 class ValidateRequest(BaseModel):
     major: str = Field(..., description="Major name to validate against.")
+    double_major: str | None = Field(None, description="Second major, for validating a double-major plan against both requirement trees.")
     plan_id: str | None = Field(None, description="plan_id from a previously generated plan. Takes precedence over course_codes.")
     course_codes: list[str] = Field(default_factory=list, description="Ordered list of course codes in the plan (semester order). Used when plan_id is absent.")
     completed: list[str] = Field(default_factory=list, description="Already-completed course codes.")
     transfer_credits: int = Field(0, ge=0)
+
+
+def _validation_node_to_check(node, courses: dict, all_codes: set[str], grand_total: int, claimed: set[str]) -> dict:
+    """
+    Recursively convert a requirement node to a UI-renderable checklist item.
+
+    `claimed` is the set of course codes already named by some specific
+    requirement elsewhere in the full tree being checked - used so an open
+    free-elective pool doesn't double-count a course that's already
+    satisfying a more specific requirement.
+    """
+    if isinstance(node, CourseRequirement):
+        c = courses.get(node.course_code)
+        passed = node.course_code in all_codes
+        return {
+            "type": "course",
+            "code": node.course_code,
+            "title": c.title if c else node.course_code,
+            "credits": c.credits if c else 0,
+            "passed": passed,
+            "label": f"{node.course_code} - {c.title if c else '?'}",
+        }
+
+    if isinstance(node, TotalCreditsRequirement):
+        return {
+            "type": "total_credits",
+            "required": node.required_credits,
+            "actual": grand_total,
+            "passed": grand_total >= node.required_credits,
+            "label": f"Total credits: {grand_total} / {node.required_credits}cr required",
+        }
+
+    if isinstance(node, MinLevelCreditsRequirement):
+        actual = sum(
+            courses[c].credits for c in all_codes
+            if c in courses and courses[c].level == node.level
+        )
+        return {
+            "type": "min_level",
+            "level": node.level,
+            "required": node.min_credits,
+            "actual": actual,
+            "passed": actual >= node.min_credits,
+            "label": f"Level {node.level} credits: {actual} / {node.min_credits}cr minimum",
+        }
+
+    if isinstance(node, MaxLevelCreditsRequirement):
+        actual = sum(
+            courses[c].credits for c in all_codes
+            if c in courses and courses[c].level == node.level
+        )
+        return {
+            "type": "max_level",
+            "level": node.level,
+            "limit": node.max_credits,
+            "actual": actual,
+            "passed": actual <= node.max_credits,
+            "label": f"Level {node.level} credits: {actual} / max {node.max_credits}cr",
+        }
+
+    if isinstance(node, ChooseCreditsRequirement):
+        if node.open_pool and not node.course_codes:
+            actual = sum(
+                courses[c].credits for c in all_codes
+                if c in courses and c not in claimed
+            )
+            return {
+                "type": "choose_credits",
+                "required": node.credits,
+                "actual": actual,
+                "passed": node.credits <= 0 or actual >= node.credits,
+                "options": [],
+                "open_pool": True,
+                "label": f"Free electives: choose any {node.credits}cr: {actual}cr selected",
+            }
+        allowed = set(node.course_codes)
+        actual = sum(courses[c].credits for c in all_codes if c in courses and c in allowed)
+        return {
+            "type": "choose_credits",
+            "required": node.credits,
+            "actual": actual,
+            "passed": node.credits <= 0 or actual >= node.credits,
+            "options": sorted(allowed)[:12],
+            "label": f"Choose {node.credits}cr from {len(allowed)} courses: {actual}cr selected",
+        }
+
+    if isinstance(node, ChooseNRequirement):
+        allowed = set(node.course_codes)
+        actual_count = sum(1 for c in all_codes if c in allowed)
+        return {
+            "type": "choose_n",
+            "required": node.n,
+            "actual": actual_count,
+            "passed": actual_count >= node.n,
+            "options": sorted(allowed)[:12],
+            "label": f"Choose {node.n} courses from {len(allowed)}: {actual_count} selected",
+        }
+
+    if isinstance(node, (AllOfRequirement, AnyOfRequirement, MajorRequirement)):
+        children = [_validation_node_to_check(child, courses, all_codes, grand_total, claimed) for child in (node.children or [])]
+        passed = all(c["passed"] for c in children) if isinstance(node, AllOfRequirement) else any(c["passed"] for c in children)
+        label = getattr(node, "label", None) or ("All of" if isinstance(node, AllOfRequirement) else "Any of")
+        return {
+            "type": "group",
+            "operator": "ALL" if isinstance(node, AllOfRequirement) else "ANY",
+            "passed": passed,
+            "label": label,
+            "children": children,
+        }
+
+    return {
+        "type": "unknown",
+        "passed": True,
+        "label": str(type(node).__name__),
+        "children": [],
+    }
 
 
 @app.post("/api/plan/validate", summary="Validate a plan against its degree requirements")
@@ -934,18 +1561,19 @@ def validate_plan(req: ValidateRequest):
       - a list of ``course_codes`` - validates those codes directly against
         the degree tree.
 
+    When ``double_major`` is set, validates the plan against BOTH majors'
+    requirement trees independently and reports both checklists - a plan
+    only passes overall when it satisfies each major in full. This matters
+    because a double-major plan can pass one major's requirements while
+    still being short on the other's (e.g. enough credits overall, but not
+    enough of the second major's specific elective pool).
+
     Returns a structured checklist of passed/failed requirements.
     """
     svc = _svc()
     courses = _courses()
 
-    from coursemap.validation.engine import DegreeValidator
-    from coursemap.domain.requirement_nodes import (
-        AllOfRequirement, AnyOfRequirement, ChooseCreditsRequirement,
-        ChooseNRequirement, CourseRequirement, MajorRequirement,
-        MaxLevelCreditsRequirement, MinLevelCreditsFromRequirement,
-        MinLevelCreditsRequirement, TotalCreditsRequirement,
-    )
+    from coursemap.validation.engine import _collect_claimed_codes
 
     # Resolve which course codes to validate
     if req.plan_id:
@@ -969,121 +1597,34 @@ def validate_plan(req: ValidateRequest):
         transfer_credits = req.transfer_credits
 
     all_codes = plan_codes | prior_codes
+    all_codes_ordered = list(plan_codes) + list(prior_codes)
+    credits_by_code = {c: courses[c].credits for c in all_codes if c in courses}
 
-    # Build degree tree
-    try:
-        tree = svc.degree_tree_for_major(req.major)
-    except (ValueError, AttributeError):
-        tree = None
-    if tree is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Could not build requirement tree for '{req.major}'. Check the major name.",
-        )
-
-    # Compute credit totals
+    # Compute credit totals (shared across both majors when double_major is set -
+    # a double major is one enrolment with one set of courses, not two separate totals)
     total_credits = sum(courses[c].credits for c in plan_codes if c in courses)
     prior_credits = sum(courses[c].credits for c in prior_codes if c in courses)
     grand_total = total_credits + prior_credits + transfer_credits
 
-    def node_to_check(node, depth=0) -> dict:
-        """Recursively convert a requirement node to a UI-renderable checklist item."""
-        if isinstance(node, CourseRequirement):
-            c = courses.get(node.course_code)
-            passed = node.course_code in all_codes
-            return {
-                "type": "course",
-                "code": node.course_code,
-                "title": c.title if c else node.course_code,
-                "credits": c.credits if c else 0,
-                "passed": passed,
-                "label": f"{node.course_code} - {c.title if c else '?'}",
-            }
-
-        if isinstance(node, TotalCreditsRequirement):
-            return {
-                "type": "total_credits",
-                "required": node.required_credits,
-                "actual": grand_total,
-                "passed": grand_total >= node.required_credits,
-                "label": f"Total credits: {grand_total} / {node.required_credits}cr required",
-            }
-
-        if isinstance(node, MinLevelCreditsRequirement):
-            actual = sum(
-                courses[c].credits for c in all_codes
-                if c in courses and courses[c].level == node.level
+    majors_to_check = [req.major] + ([req.double_major] if req.double_major else [])
+    results = []
+    for major_name in majors_to_check:
+        try:
+            tree = svc.degree_tree_for_major(major_name)
+        except (ValueError, AttributeError):
+            tree = None
+        if tree is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Could not build requirement tree for '{major_name}'. Check the major name.",
             )
-            return {
-                "type": "min_level",
-                "level": node.level,
-                "required": node.min_credits,
-                "actual": actual,
-                "passed": actual >= node.min_credits,
-                "label": f"Level {node.level} credits: {actual} / {node.min_credits}cr minimum",
-            }
+        claimed = _collect_claimed_codes(tree, all_codes_ordered, credits_by_code)
+        checklist = _validation_node_to_check(tree, courses, all_codes, grand_total, claimed)
+        results.append({"major": major_name, "checklist": checklist, "passed": checklist.get("passed", False)})
 
-        if isinstance(node, MaxLevelCreditsRequirement):
-            actual = sum(
-                courses[c].credits for c in all_codes
-                if c in courses and courses[c].level == node.level
-            )
-            return {
-                "type": "max_level",
-                "level": node.level,
-                "limit": node.max_credits,
-                "actual": actual,
-                "passed": actual <= node.max_credits,
-                "label": f"Level {node.level} credits: {actual} / max {node.max_credits}cr",
-            }
+    overall_passed = all(r["passed"] for r in results)
 
-        if isinstance(node, ChooseCreditsRequirement):
-            allowed = set(node.course_codes)
-            actual = sum(courses[c].credits for c in all_codes if c in courses and c in allowed)
-            return {
-                "type": "choose_credits",
-                "required": node.credits,
-                "actual": actual,
-                "passed": actual >= node.credits,
-                "options": sorted(allowed)[:12],
-                "label": f"Choose {node.credits}cr from {len(allowed)} courses: {actual}cr selected",
-            }
-
-        if isinstance(node, ChooseNRequirement):
-            allowed = set(node.course_codes)
-            actual_count = sum(1 for c in all_codes if c in allowed)
-            return {
-                "type": "choose_n",
-                "required": node.n,
-                "actual": actual_count,
-                "passed": actual_count >= node.n,
-                "options": sorted(allowed)[:12],
-                "label": f"Choose {node.n} courses from {len(allowed)}: {actual_count} selected",
-            }
-
-        if isinstance(node, (AllOfRequirement, AnyOfRequirement, MajorRequirement)):
-            children = [node_to_check(child, depth + 1) for child in (node.children or [])]
-            passed = all(c["passed"] for c in children) if isinstance(node, AllOfRequirement) else any(c["passed"] for c in children)
-            label = getattr(node, "label", None) or ("All of" if isinstance(node, AllOfRequirement) else "Any of")
-            return {
-                "type": "group",
-                "operator": "ALL" if isinstance(node, AllOfRequirement) else "ANY",
-                "passed": passed,
-                "label": label,
-                "children": children,
-            }
-
-        return {
-            "type": "unknown",
-            "passed": True,
-            "label": str(type(node).__name__),
-            "children": [],
-        }
-
-    checklist = node_to_check(tree)
-    overall_passed = checklist.get("passed", False)
-
-    return {
+    response = {
         "major": req.major,
         "plan_id": req.plan_id,
         "overall_passed": overall_passed,
@@ -1091,5 +1632,41 @@ def validate_plan(req: ValidateRequest):
         "plan_credits": total_credits,
         "prior_credits": prior_credits,
         "transfer_credits": transfer_credits,
-        "checklist": checklist,
+        "checklist": results[0]["checklist"],
     }
+    if req.double_major:
+        response["double_major"] = req.double_major
+        response["per_major"] = results
+        response["first_major_passed"] = results[0]["passed"]
+        response["second_major_passed"] = results[1]["passed"]
+    return response
+
+
+@app.get("/api/plan/{plan_id}/advisor-summary",
+         summary="Plain-text advisor-ready summary of a stored plan")
+def advisor_summary(plan_id: str):
+    """
+    Return a formatted plain-text summary of a stored plan suitable for
+    printing or emailing to an academic advisor.
+    """
+    cached = plan_store.get(plan_id)
+    if not cached:
+        raise HTTPException(status_code=404, detail="Plan not found.")
+    text = _PlanExportSvc.to_advisor_text(cached, plan_id=plan_id)
+    return Response(
+        content=text, media_type="text/plain",
+        headers={"Content-Disposition": f'attachment; filename="degree_plan_{plan_id}.txt"'},
+    )
+
+@app.get("/api/plan/{plan_id}/markdown",
+         summary="Markdown export of a stored plan")
+def plan_markdown(plan_id: str):
+    """Return a Markdown-formatted plan - useful for pasting into Notion, Obsidian, etc."""
+    cached = plan_store.get(plan_id)
+    if not cached:
+        raise HTTPException(status_code=404, detail="Plan not found.")
+    text = _PlanExportSvc.to_markdown(cached)
+    return Response(
+        content=text, media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="degree_plan_{plan_id}.md"'},
+    )

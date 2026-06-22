@@ -107,9 +107,17 @@ def _cmd_courses(args: argparse.Namespace) -> None:
     if mode:
         results = [c for c in results if any(o.mode == mode for o in c.offerings)]
 
+    semester_filter = getattr(args, "semester", None)
+    if semester_filter:
+        results = [c for c in results if any(
+            o.semester == semester_filter.upper() for o in c.offerings
+        )]
+
     show_inactive = getattr(args, "show_inactive", False)
     if not show_inactive:
         results = [c for c in results if c.offerings]
+        # Also exclude zero-credit practicum/placement courses from the default view
+        results = [c for c in results if c.credits > 0]
 
     if not results:
         hint = ""
@@ -161,7 +169,8 @@ def _cmd_courses(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 def _parse_code_list(raw: str, catalogue: dict) -> tuple[frozenset, list]:
-    codes   = [c.strip() for c in raw.split(",") if c.strip()]
+    # Normalise: strip whitespace and uppercase (matches server.py sanitisation)
+    codes   = [c.strip().upper() for c in raw.split(",") if c.strip()]
     valid   = frozenset(c for c in codes if c in catalogue)
     invalid = [c for c in codes if c not in catalogue]
     return valid, invalid
@@ -174,7 +183,14 @@ def _collect_missing(
     planned: set[str],
     out: list[str],
 ) -> None:
-    """Recursively collect prerequisite codes that are unmet and not already planned."""
+    """
+    Recursively collect prerequisite codes that are unmet and not already planned.
+
+    For OR expressions: if any branch is fully satisfied (no missing codes), the
+    OR is satisfied and nothing is added. If no branch is fully satisfied, report
+    the missing codes from the branch with the fewest missing codes (the "best"
+    branch to satisfy).
+    """
     if prereq_expr is None:
         return
     if isinstance(prereq_expr, CoursePrerequisite):
@@ -187,12 +203,18 @@ def _collect_missing(
             _collect_missing(child, completed, known, planned, out)
         return
     if isinstance(prereq_expr, OrExpression):
+        # Collect missing from each branch
+        branch_missing: list[list[str]] = []
         for child in prereq_expr.children:
-            test: list[str] = []
-            _collect_missing(child, completed, known, planned, test)
-            if not test:
-                return
-        _collect_missing(prereq_expr.children[0], completed, known, planned, out)
+            branch: list[str] = []
+            _collect_missing(child, completed, known, planned, branch)
+            if not branch:
+                return  # this branch is fully satisfied - OR is satisfied
+            branch_missing.append(branch)
+        # No branch fully satisfied: report missing from the branch with fewest gaps
+        if branch_missing:
+            best = min(branch_missing, key=len)
+            out.extend(best)
 
 
 def _elective_suggestions(
@@ -307,10 +329,12 @@ def _export_plan_html(
         rows = ""
         for course in semester.courses:
             title = course.title
+            fy_badge = ' <span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;margin-left:4px">FY</span>' if any(getattr(o, "full_year", False) for o in course.offerings) else ""
+            prereq_dot = '<span style="color:#e74c3c;font-weight:700;margin-right:4px" title="No prerequisite data - verify before enrolling">•</span>' if course.prerequisites is None and course.level >= 200 else ""
             rows += f"""
             <tr>
               <td class="code">{course.code}</td>
-              <td class="title">{title}</td>
+              <td class="title">{prereq_dot}{title}{fy_badge}</td>
               <td class="credits">{course.credits}cr</td>
             </tr>"""
         sem_label = f"{semester.year} {semester.semester}"
@@ -326,6 +350,17 @@ def _export_plan_html(
         </div>"""
 
     electives_html = ""
+    if gap > 0 and not elective_suggestions:
+        # Show gap note even when no suggestions found
+        electives_html = f"""
+        <section class="electives">
+          <h2>Free Elective Gap &mdash; {gap}cr</h2>
+          <p style="color:#6b7280;font-size:0.88rem;padding:1rem">
+            {gap}cr of free electives are required. Choose any approved Massey courses
+            to fill this gap. Use <code>coursemap courses --search &lt;topic&gt;</code>
+            to browse options.
+          </p>
+        </section>"""
     if gap > 0 and elective_suggestions:
         rows = ""
         for level, code, title in elective_suggestions:
@@ -618,7 +653,11 @@ def _export_plan_json(
             "semester": s.semester,
             "credits":  s.total_credits(),
             "courses": [
-                {"code": c.code, "title": c.title, "credits": c.credits}
+                {
+                    "code": c.code, "title": c.title, "credits": c.credits,
+                    "full_year": any(getattr(o, "full_year", False) for o in c.offerings),
+                    "prereq_data_available": c.prerequisites is not None,
+                }
                 for c in s.courses
             ],
         }
@@ -820,7 +859,7 @@ def _print_summary(
     filled_cr    = sum(courses[c].credits for c in filler_codes if c in courses)
     remaining_gap = max(0, gap - filled_cr)
 
-    # Adjust gap downward by transfer credits already counted toward degree total.
+    # effective_gap: credits still needed beyond what's scheduled + prior + transfer
     effective_gap = max(0, gap - transfer_cr)
 
     print("Summary")
@@ -893,6 +932,31 @@ def _print_elective_section(
 # coursemap plan  (main handler)
 # ---------------------------------------------------------------------------
 
+def _cmd_minors(args: argparse.Namespace) -> None:
+    """List available minors, optionally filtered by name."""
+    from coursemap.ingestion.minor_loader import load_minors, search_minors
+    minors = load_minors()
+    if args.search:
+        minors = search_minors(args.search, minors)
+    if not minors:
+        print(f"No minors matching '{args.search}'." if args.search else "No minors found.",
+              file=sys.stderr)
+        sys.exit(1)
+    quality_filter = getattr(args, "quality", None)
+    if quality_filter:
+        minors = [m for m in minors if m.get("data_quality") == quality_filter]
+    print(f"{len(minors)} minor(s):\n")
+    for m in sorted(minors, key=lambda x: x["name"]):
+        quality = m.get("data_quality", "?")
+        credits = m.get("total_credits", "?")
+        flag = "  ⚠ inferred" if quality == "inferred" else ""
+        print(f"  {m['name']:<45} {credits}cr{flag}")
+    print()
+    if any(m.get("data_quality") == "inferred" for m in minors):
+        print("⚠ Inferred minors are approximated from course patterns. "
+              "Verify at massey.ac.nz/study/minors/")
+
+
 def _cmd_plan(args: argparse.Namespace) -> None:
     courses = load_courses()
     majors  = load_majors()
@@ -939,6 +1003,43 @@ def _cmd_plan(args: argparse.Namespace) -> None:
                 + ", ".join(sorted(invalid)),
                 file=sys.stderr,
             )
+
+    # ---- Resolve --minor flag (add minor courses to preferred electives) ----
+    minor_name = getattr(args, "minor", None)
+    if minor_name:
+        from coursemap.ingestion.minor_loader import load_minors as _lm, search_minors as _sm
+        _minors = _lm()
+        _matches = _sm(minor_name, _minors)
+        if not _matches:
+            print(
+                f"Warning: Minor '{minor_name}' not found. "
+                "Run 'coursemap minors' to see available minors.",
+                file=sys.stderr,
+            )
+        else:
+            _minor = _matches[0]
+            if len(_matches) > 1:
+                print(f"Minor: matched '{_minor['name']}' (first of {len(_matches)} matches).", file=sys.stderr)
+            else:
+                print(f"Minor: adding '{_minor['name']}' courses to preferred electives.", file=sys.stderr)
+            # Collect course codes from the minor requirement dict
+            def _minor_codes(req_dict: dict) -> set:
+                t = req_dict.get("type", "")
+                if t == "COURSE":
+                    return {req_dict["course_code"]}
+                if t == "CHOOSE_CREDITS":
+                    return set(req_dict.get("course_codes", []))
+                if t in ("ALL_OF", "ANY_OF"):
+                    result = set()
+                    for child in req_dict.get("children", []):
+                        result |= _minor_codes(child)
+                    return result
+                return set()
+            _minor_prefer = frozenset(
+                c for c in _minor_codes(_minor.get("requirement", {})) if c in courses
+            )
+            preferred = preferred | _minor_prefer
+            print(f"         Added {len(_minor_prefer)} course(s) to preferred electives.", file=sys.stderr)
 
     # ---- Resolve start year / semester defaults ----------------------------
     import datetime as _dt
@@ -1065,9 +1166,14 @@ def _cmd_plan(args: argparse.Namespace) -> None:
         excl         = []
         student_excl_required: list[str] = []
     elif args.major:
-        gap          = svc.free_elective_gap(args.major, campus=args.campus, mode=args.mode)
+        _raw_gap     = svc.free_elective_gap(args.major, campus=args.campus, mode=args.mode)
         excl         = svc.campus_excluded_courses(args.major, campus=args.campus, mode=args.mode)
         degree_total = svc.degree_total_credits(args.major)
+        # Residual gap: if the plan has reached the degree total (the generator
+        # may have filled with subject-area electives), show 0. Otherwise show
+        # the structural gap so the student knows they must self-select courses.
+        _plan_total  = plan.total_credits() + plan.prior_credits() + plan.transfer_credits
+        gap          = max(0, degree_total - _plan_total)
         student_excl_required = (
             svc.student_excluded_required_courses(
                 args.major, excluded, campus=args.campus, mode=args.mode
@@ -1365,6 +1471,7 @@ def _cmd_data_quality(args: argparse.Namespace) -> None:
         print()
 
     # ── Recommendation summary ─────────────────────────────────────────────
+    to_rescrape = old_format + null_format
     print("  Recommendations")
     if new_format == total_courses:
         print("    ✓ All courses use structured prerequisite format.")
@@ -1432,6 +1539,14 @@ def main() -> None:
         help="Filter by name. Supports partial words (e.g. 'comp sci' matches 'Computer Science').",
     )
 
+    # -- minors ---------------------------------------------------------------
+    minors_p = sub.add_parser("minors", help="List available minors.")
+    minors_p.add_argument("--search", metavar="QUERY",
+                          help="Filter by minor name (partial match).")
+    minors_p.add_argument("--quality", choices=["scraped", "inferred"],
+                          help="Filter by data quality.")
+    minors_p.set_defaults(func=_cmd_minors)
+
     # -- courses --------------------------------------------------------------
     courses_p = sub.add_parser("courses", help="Browse the course catalogue.")
     courses_p.add_argument("--search", metavar="QUERY", help="Filter by title.")
@@ -1441,6 +1556,9 @@ def main() -> None:
                            help="Show only courses at this campus (D, M, A, W).")
     courses_p.add_argument("--mode", default=None, metavar="CODE",
                            help="Show only courses in this delivery mode (DIS, INT, BLK).")
+    courses_p.add_argument("--semester", metavar="SEM", default=None,
+                           choices=["S1", "S2", "SS"],
+                           help="Show only courses available in this semester (S1, S2, SS).")
     courses_p.add_argument("--show-inactive", action="store_true", default=False,
                            help="Include courses with no current offerings.")
 
@@ -1450,6 +1568,8 @@ def main() -> None:
                         help="Major name (partial match accepted).")
     plan_p.add_argument("--double-major", dest="double_major", metavar="NAME",
                         help="Second major name for a combined double-major plan.")
+    plan_p.add_argument("--minor", dest="minor", metavar="NAME",
+                        help="Add a minor's courses to preferred electives (partial name match).")
     plan_p.add_argument("--start-year", type=int, default=None, metavar="YEAR",
                         help="First year of study (default: current year).")
     plan_p.add_argument("--start-semester", dest="start_semester",
@@ -1474,7 +1594,7 @@ def main() -> None:
                         help="Comma-separated course codes to never schedule (opt-out).")
     plan_p.add_argument("--output", metavar="FILE",
                         help="Output JSON path (default: plan.json).")
-    plan_p.add_argument("--no-summer", dest="no_summer", action="store_true", default=False,
+    plan_p.add_argument("--no-summer", dest="no_summer", action="store_true", default=True,
                         help="Skip Summer School (SS) semesters.")
     plan_p.add_argument("--auto-fill", dest="auto_fill", action="store_true", default=False,
                         help="Auto-select subject-area electives to fill the free-elective gap.")
@@ -1513,6 +1633,7 @@ def main() -> None:
     )
 
     if   args.command == "majors":   _cmd_majors(args)
+    elif args.command == "minors":   _cmd_minors(args)
     elif args.command == "courses":  _cmd_courses(args)
     elif args.command == "plan":     _cmd_plan(args)
     elif args.command == "validate": _cmd_validate(args)
