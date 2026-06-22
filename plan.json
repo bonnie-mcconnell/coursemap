@@ -1,0 +1,142 @@
+{
+  "meta": {
+    "major": "Computer Science \u2013 Bachelor of Information Sciences",
+    "campus": "D",
+    "mode": "DIS",
+    "start_year": 2026,
+    "credits_planned": 195,
+    "credits_prior": 0,
+    "credits_transfer": 0,
+    "credits_total": 195,
+    "degree_target": 360,
+    "free_elective_gap": 165
+  },
+  "semesters": [
+    {
+      "year": 2026,
+      "semester": "S1",
+      "credits": 45,
+      "courses": [
+        {
+          "code": "159101",
+          "title": "Applied Programming",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": false
+        },
+        {
+          "code": "159102",
+          "title": "Computer Science and Programming",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": false
+        },
+        {
+          "code": "160105",
+          "title": "Methods of Mathematics",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": false
+        }
+      ]
+    },
+    {
+      "year": 2026,
+      "semester": "S2",
+      "credits": 30,
+      "courses": [
+        {
+          "code": "297101",
+          "title": "Statistical Data Science",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": false
+        },
+        {
+          "code": "159224",
+          "title": "Methods in Machine Learning",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": true
+        }
+      ]
+    },
+    {
+      "year": 2027,
+      "semester": "S1",
+      "credits": 60,
+      "courses": [
+        {
+          "code": "159201",
+          "title": "Algorithms and Data Structures",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": true
+        },
+        {
+          "code": "159223",
+          "title": "Artificial Intelligence Methods",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": true
+        },
+        {
+          "code": "159234",
+          "title": "Object-Oriented Programming",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": true
+        },
+        {
+          "code": "159261",
+          "title": "Games Programming",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": true
+        }
+      ]
+    },
+    {
+      "year": 2027,
+      "semester": "S2",
+      "credits": 30,
+      "courses": [
+        {
+          "code": "159324",
+          "title": "Artificial Intelligence in Computer Vision",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": true
+        },
+        {
+          "code": "159333",
+          "title": "Programming Project",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": true
+        }
+      ]
+    },
+    {
+      "year": 2028,
+      "semester": "S1",
+      "credits": 30,
+      "courses": [
+        {
+          "code": "159341",
+          "title": "Programming Languages, Algorithms and Concurrency",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": true
+        },
+        {
+          "code": "159323",
+          "title": "Natural Language Processing and Multi-Agent Reasoning",
+          "credits": 15,
+          "full_year": false,
+          "prereq_data_available": true
+        }
+      ]
+    }
+  ]
+}
