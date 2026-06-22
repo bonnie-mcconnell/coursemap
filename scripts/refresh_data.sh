@@ -40,6 +40,10 @@ fi
 
 echo "── Repairing data…"
 python3 -m coursemap.ingestion.repair_dataset
+echo "── Patching free-elective gaps…"
+python3 -m coursemap.ingestion.patch_elective_gaps
+# Clear plan cache so stale plans aren't served after data update
+[ -f "data/plans.db" ] && rm "data/plans.db" && echo "── Cleared plan cache"
 echo "── Validating…"
 python3 -m coursemap.validation.dataset_validator --report
 echo "── Testing…"
