@@ -50,7 +50,25 @@ class DegreePlan:
             for semester in self.semesters
             for course in semester.courses
         )
-        self.all_course_codes = scheduled | frozenset(c.code for c in self.prior_completed)
+        object.__setattr__(self, "all_course_codes",
+                           scheduled | frozenset(c.code for c in self.prior_completed))
+
+    def __setattr__(self, name: str, value) -> None:
+        """
+        Guard against post-construction mutation that would leave all_course_codes stale.
+
+        DegreePlan is a mutable dataclass (not frozen=True) because plan_store
+        needs to attach metadata after construction. This guard prevents silent
+        correctness bugs from code that reassigns semesters or prior_completed
+        without recomputing all_course_codes.
+        """
+        if name in ("semesters", "prior_completed") and hasattr(self, "all_course_codes"):
+            raise AttributeError(
+                f"Cannot reassign DegreePlan.{name} after construction - "
+                "all_course_codes would become stale. "
+                "Create a new DegreePlan instance instead."
+            )
+        object.__setattr__(self, name, value)
 
     def total_credits(self) -> int:
         """Credits earned in newly-scheduled semesters (excludes prior and transfer)."""

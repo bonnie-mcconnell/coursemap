@@ -32,4 +32,16 @@ class PlanScorer:
         spread_penalty   = (max(loads) - min(loads)) * 5
         final_penalty    = loads[-1] * 2
 
-        return semester_penalty + spread_penalty + final_penalty
+        # Penalise imbalance between S1 and S2 semesters separately.
+        # A plan that front-loads S1 and leaves light S2 semesters is worse
+        # than one with balanced S1/S2 loads.
+        s1_loads = [s.total_credits() for s in plan.semesters if s.semester == "S1"]
+        s2_loads = [s.total_credits() for s in plan.semesters if s.semester == "S2"]
+        if s1_loads and s2_loads:
+            s1_avg = sum(s1_loads) / len(s1_loads)
+            s2_avg = sum(s2_loads) / len(s2_loads)
+            balance_penalty = abs(s1_avg - s2_avg)
+        else:
+            balance_penalty = 0.0
+
+        return semester_penalty + spread_penalty + final_penalty + balance_penalty

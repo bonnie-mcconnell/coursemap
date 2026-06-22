@@ -27,9 +27,77 @@ from coursemap.domain.prerequisite_utils import prereqs_met
 
 logger = logging.getLogger(__name__)
 
+
+def _prereq_codes_or_aware(prereq, known: set[str]) -> set[str]:
+    """
+    Return the set of codes that are REQUIRED (i.e. must be present before
+    this course can run) accounting for OR expressions.
+
+    For AND nodes, all children must be satisfiable - their required codes union.
+    For OR nodes, only ONE branch needs to be satisfiable - we take the
+    intersection of all branches' codes (i.e. codes required by every branch).
+    Codes not in ``known`` are ignored (treated as external/satisfied).
+
+    This is used by the rebalancer safety check to avoid moving a course that
+    is needed by another course as a prerequisite. Using full required_courses()
+    here would return OR-branch codes that aren't actually required (only one
+    branch of an OR needs to be met), causing valid rebalancing moves to be
+    rejected unnecessarily.
+
+    OR-intersection caveat: when an OR has a branch that's entirely external
+    (no codes in `known` at all - e.g. an admission gatekeeper code that was
+    never added to the working set), that branch's contribution to the
+    intersection is an empty set. Naively intersecting with an empty set
+    collapses the WHOLE intersection to empty, making the function report
+    "nothing required" even when another branch of the same OR is fully
+    known and genuinely required. That let the rebalancer treat such a
+    course as having no prerequisite dependency at all and move it earlier,
+    silently violating real prerequisite ordering (e.g. an OR-aware required
+    course scheduled before either of its OR-branches had been completed).
+
+    Fix: only intersect across branches that have at least one code in
+    `known` - fully-external branches are excluded from the intersection
+    rather than contributing an empty set to it, since an empty contribution
+    in set-intersection terms always wins and that's not the intent here.
+    """
+    from coursemap.domain.prerequisite import (
+        AndExpression, OrExpression, CoursePrerequisite,
+    )
+
+    def _codes(node) -> set[str]:
+        if isinstance(node, CoursePrerequisite):
+            return {node.code} if node.code in known else set()
+        if isinstance(node, AndExpression):
+            result: set[str] = set()
+            for child in node.children:
+                result |= _codes(child)
+            return result
+        if isinstance(node, OrExpression):
+            # Only codes required by EVERY *trackable* branch are truly
+            # required. A branch with zero codes in `known` is entirely
+            # external (e.g. an admission gatekeeper) and must not be
+            # allowed to zero out the whole intersection just because it
+            # has nothing to contribute.
+            branch_sets = [_codes(child) for child in node.children]
+            trackable = [s for s in branch_sets if s]
+            if not trackable:
+                # Every branch is external - nothing here is required.
+                return set()
+            result = trackable[0]
+            for s in trackable[1:]:
+                result = result.intersection(s)
+            return result
+        return set()
+
+    if prereq is None:
+        return set()
+    try:
+        return _codes(prereq)
+    except Exception:
+        return prereq.required_courses() & known
+
+
 REBALANCE_THRESHOLD = 30  # credits below which the final semester triggers rebalancing
-# For postgrad plans where courses are 30cr, use a higher threshold
-_REBALANCE_THRESHOLD_POSTGRAD = 60
 
 
 @dataclass
@@ -79,6 +147,7 @@ class PlanGenerator:
         self.prior_completed: frozenset = prior_completed
         self.no_summer = no_summer
         self._known_codes: set[str] = set(self.courses)
+        self.filler_codes: frozenset = frozenset()  # set via generate_filled_plan
         self.stats: PlanStats = PlanStats()
 
     def generate(self) -> DegreePlan:
@@ -141,9 +210,17 @@ class PlanGenerator:
 
             if not eligible:
                 if not self._any_future_possible(remaining, completed):
+                    blocked = sorted(remaining)[:5]
+                    campus_mode = f"{self.campus}/{self.mode}"
                     raise ValueError(
-                        "No schedulable courses remain. "
-                        "Prerequisite or offering deadlock detected."
+                        f"No schedulable courses remain ({len(remaining)} blocked). "
+                        f"Campus/mode: {campus_mode}. "
+                        f"First blocked codes: {blocked}. "
+                        "Possible causes: (1) required course not offered at this campus/mode, "
+                        "(2) circular prerequisite, "
+                        "(3) prerequisite chain includes a course excluded by the student. "
+                        "Try switching campus/mode, removing exclusions, or adding the "
+                        "blocking courses to your completed list."
                     )
                 self.stats.empty_semesters_skipped += 1
                 logger.debug(
@@ -158,7 +235,15 @@ class PlanGenerator:
 
             eligible_set: set[str] = set(eligible)
 
-            for code in sorted(eligible):
+            # Sort eligible courses: by (level, is_filler, code).
+            # This ensures L100 CS courses (e.g. 159101) schedule before
+            # L100 free-electives (e.g. 110109 Accounting), because both
+            # are eligible in semester 1 but required courses should come first.
+            def _sort_key(c: str) -> tuple:
+                is_filler = int(c in self.filler_codes)
+                lvl = self.courses[c].level if c in self.courses else 999
+                return (lvl, is_filler, c)
+            for code in sorted(eligible, key=_sort_key):
                 if code in already_added:
                     continue
 
@@ -300,8 +385,8 @@ class PlanGenerator:
             for mid_idx in range(src_idx + 1, len(sem_courses) - 1):
                 for course in sem_courses[mid_idx]:
                     if course.prerequisites:
-                        needed_by_intermediate |= (
-                            course.prerequisites.required_courses() & self._known_codes
+                        needed_by_intermediate |= _prereq_codes_or_aware(
+                            course.prerequisites, self._known_codes
                         )
 
             final_credits = sum(c.credits for c in sem_courses[-1])
@@ -313,8 +398,8 @@ class PlanGenerator:
             needed_by_final: set[str] = set()
             for fc in sem_courses[-1]:
                 if fc.prerequisites:
-                    needed_by_final |= (
-                        fc.prerequisites.required_courses() & self._known_codes
+                    needed_by_final |= _prereq_codes_or_aware(
+                        fc.prerequisites, self._known_codes
                     )
 
             # Iterate over a snapshot so we can remove from the live list.
@@ -360,8 +445,8 @@ class PlanGenerator:
                 # Update needed_by_final: the newly added course may itself have prereqs
                 # that block subsequent candidates from this same source semester.
                 if course.prerequisites:
-                    needed_by_final |= (
-                        course.prerequisites.required_courses() & self._known_codes
+                    needed_by_final |= _prereq_codes_or_aware(
+                        course.prerequisites, self._known_codes
                     )
 
                 logger.debug(
@@ -404,7 +489,7 @@ class PlanGenerator:
         pen_codes = {c.code for c in penultimate.courses}
         fin_needs_pen = any(
             c.prerequisites
-            and (c.prerequisites.required_courses() & self._known_codes) & pen_codes
+            and _prereq_codes_or_aware(c.prerequisites, self._known_codes) & pen_codes
             for c in final.courses
         )
         combined_count = len(penultimate.courses) + len(final.courses)
@@ -493,8 +578,8 @@ class PlanGenerator:
                 for mid_idx in range(dst_idx + 1, src_idx):
                     for course in sem_courses[mid_idx]:
                         if course.prerequisites:
-                            needed_between |= (
-                                course.prerequisites.required_courses() & self._known_codes
+                            needed_between |= _prereq_codes_or_aware(
+                                course.prerequisites, self._known_codes
                             )
 
                 # Codes that dst's existing courses need as prereqs (block moving
@@ -502,8 +587,8 @@ class PlanGenerator:
                 needed_by_dst: set[str] = set()
                 for fc in sem_courses[dst_idx]:
                     if fc.prerequisites:
-                        needed_by_dst |= (
-                            fc.prerequisites.required_courses() & self._known_codes
+                        needed_by_dst |= _prereq_codes_or_aware(
+                            fc.prerequisites, self._known_codes
                         )
 
                 for course in list(sem_courses[src_idx]):
@@ -532,7 +617,7 @@ class PlanGenerator:
 
                     # (e) course must not need anything in dst..src-1 as prereq
                     prereq_codes = (
-                        course.prerequisites.required_courses() & self._known_codes
+                        _prereq_codes_or_aware(course.prerequisites, self._known_codes)
                         if course.prerequisites else set()
                     )
                     blocking: set[str] = set()

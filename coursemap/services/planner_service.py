@@ -31,13 +31,17 @@ from coursemap.domain.requirement_nodes import (
 from coursemap.domain.requirement_serialization import requirement_from_dict
 from coursemap.domain.requirement_utils import (
     collect_course_codes,
+    collect_course_node_codes,
     collect_elective_nodes,
     find_total_credits,
 )
 from coursemap.optimisation.search import PlanSearch
 from coursemap.planner.generator import PlanGenerator
 from coursemap.planner.elective_filler import ElectiveFiller
-from coursemap.rules.degree_rules import build_degree_tree, filter_requirement_tree, profile_for
+from coursemap.rules.degree_rules import (
+    build_degree_tree, filter_requirement_tree, profile_for,
+    cap_overcaptured_required_codes,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +112,7 @@ class PlannerService:
         prior_completed: frozenset = frozenset(),
         preferred_electives: frozenset = frozenset(),
         excluded_courses: frozenset = frozenset(),
-        no_summer: bool = False,
+        no_summer: bool = True,
         transfer_credits: int = 0,
     ) -> DegreePlan:
         """
@@ -204,6 +208,7 @@ class PlannerService:
             self._build_major_req_tree(m),
             campus=campus,
             mode=mode,
+            keep_open_pools=True,
         )
 
     # ------------------------------------------------------------------
@@ -343,6 +348,7 @@ class PlannerService:
         major_req: RequirementNode,
         campus: str = "D",
         mode: str = "DIS",
+        keep_open_pools: bool = False,
     ) -> RequirementNode:
         """
         Derive the full degree requirement tree for this major, filtered to the
@@ -359,6 +365,15 @@ class PlannerService:
            included only when the schedulable major credits cover the full degree
            target. When the scraped data is incomplete (free electives missing),
            these constraints are omitted to avoid false failures.
+
+        `keep_open_pools`: generation-time callers validate an UNFILLED base
+        plan, before free electives have been added - for them, the open
+        free-elective pool should be dropped (default, False), since checking
+        it against a plan that hasn't been given electives yet would always
+        fail. Callers validating a COMPLETE, already-filled plan (e.g. the
+        standalone /api/plan/validate endpoint) should pass True so the free
+        elective requirement is actually checked against what the student
+        took.
         """
 
         name = major["name"]
@@ -377,13 +392,86 @@ class PlannerService:
 
         course_credits = {code: self.courses[code].credits for code in self.courses}
         filtered_req = (
-            filter_requirement_tree(major_req, schedulable_codes, course_credits)
+            filter_requirement_tree(major_req, schedulable_codes, course_credits, keep_open_pools)
             or major_req
         )
 
-        schedulable_credits = sum(
-            self.courses[c].credits for c in schedulable_codes
+        # When validating a COMPLETE plan (keep_open_pools=True), also correct
+        # for the "over-captured required courses" data pattern: about 9.5% of
+        # majors (concentrated in postgraduate programmes - Master's, PGDip,
+        # research-heavy degrees) have scraped data listing more required
+        # courses than the degree's credit target allows for, almost always
+        # because several alternative specialisation tracks were flattened
+        # into one list rather than the degree genuinely requiring that many
+        # credits. Generation handles this with its own plan-specific trim
+        # (PlanSearch._plan_for_major); validation has no visibility into
+        # that trim (a fresh tree is rebuilt here, independent of any
+        # particular generated plan), so without this correction, validating
+        # ANY plan for such a major - even one the generator itself produced
+        # and considers complete - would report missing required courses for
+        # whichever ones happen to be outside the credit budget by sort order.
+        if keep_open_pools:
+            elective_nodes_for_cap = [
+                n for n in collect_elective_nodes(major_req)
+                if isinstance(n, ChooseCreditsRequirement) and not (n.open_pool and not n.course_codes)
+            ]
+            pool_codes_for_cap = {c for n in elective_nodes_for_cap for c in n.course_codes}
+            all_major_codes_for_cap = collect_course_codes(major_req)
+            required_codes_for_cap = all_major_codes_for_cap - pool_codes_for_cap
+            tree_required_for_cap = collect_course_node_codes(filtered_req)
+            course_levels = {code: self.courses[code].level for code in self.courses}
+
+            kept_codes, was_capped = cap_overcaptured_required_codes(
+                required_codes=required_codes_for_cap,
+                pool_nodes=elective_nodes_for_cap,
+                degree_total=profile_for(qual["level"], qual["length"]).total_credits,
+                course_credits=course_credits,
+                course_levels=course_levels,
+                schedulable_codes=schedulable_codes,
+                tree_required=tree_required_for_cap,
+            )
+            if was_capped:
+                dropped_codes = required_codes_for_cap - kept_codes
+                rebased = filter_requirement_tree(
+                    filtered_req,
+                    frozenset(schedulable_codes - dropped_codes),
+                    course_credits,
+                    keep_open_pools,
+                )
+                if rebased is not None:
+                    filtered_req = rebased
+
+        # schedulable_credits approximates the credits this major ACTUALLY
+        # requires (not how many course options happen to be schedulable
+        # across all pools combined - a pool with 10 eligible 15cr courses
+        # but only a 60cr target should count as 60cr here, not 150cr).
+        #
+        # = required (non-pool) course credits
+        #   + each named pool's credit target, capped at what that pool can
+        #     actually schedule (mirrors _select_electives' own capping)
+        #   (the open free-elective pool is deliberately excluded: there's
+        #    no fixed course list to check schedulability against, so its
+        #    completeness can never be verified from data alone)
+        pool_nodes = [
+            n for n in collect_elective_nodes(major_req)
+            if isinstance(n, ChooseCreditsRequirement)
+        ]
+        pool_member_codes = {c for n in pool_nodes for c in n.course_codes}
+        required_only_codes = schedulable_codes - pool_member_codes
+        required_credits = sum(self.courses[c].credits for c in required_only_codes)
+
+        named_pool_credits = sum(
+            min(
+                n.credits,
+                sum(
+                    self.courses[c].credits for c in n.course_codes
+                    if c in schedulable_codes
+                ),
+            )
+            for n in pool_nodes
+            if not (n.open_pool and not n.course_codes)
         )
+        schedulable_credits = required_credits + named_pool_credits
 
         return build_degree_tree(
             major_req=filtered_req,
@@ -406,7 +494,7 @@ class PlannerService:
         prior_completed: frozenset = frozenset(),
         preferred_electives: frozenset = frozenset(),
         excluded_courses: frozenset = frozenset(),
-        no_summer: bool = False,
+        no_summer: bool = True,
         transfer_credits: int = 0,
     ) -> tuple["DegreePlan", dict]:
         """
@@ -553,7 +641,7 @@ class PlannerService:
         prior_completed: frozenset = frozenset(),
         preferred_electives: frozenset = frozenset(),
         excluded_courses: frozenset = frozenset(),
-        no_summer: bool = False,
+        no_summer: bool = True,
         transfer_credits: int = 0,
     ) -> tuple["DegreePlan", list[str]]:
         """
@@ -695,9 +783,53 @@ class PlannerService:
                 if isinstance(_node, _CCR):
                     major_pool_codes.update(_node.course_codes)
 
+        # Exclude ALL of the major's own elective-pool codes from filler
+        # candidates, not just ones already scheduled in the base plan.
+        #
+        # An earlier version only excluded pool codes already scheduled
+        # (pool_already_planned), allowing UNSCHEDULED pool members to be
+        # picked as filler - reasoning that an extra same-subject elective is
+        # a fine choice. In practice this created a race: when
+        # generate_filled_plan re-runs the full PlanSearch pipeline with the
+        # filler pool injected, _select_electives processes the major's named
+        # pools (L200/L300 CS electives, etc.) and the new filler pool as
+        # INDEPENDENT passes with no shared memory of what the base plan
+        # already used. The named-pool pass re-derives its own credit target
+        # from scratch and, by simple sort-order coincidence, often picks the
+        # very same low-code-numbered courses the filler step had already
+        # claimed - leaving the filler pool short of ITS target. The result
+        # was a plan a few credits below the real degree total that still
+        # passed the "is anything missing" checks, because the missing
+        # credits were spread thin enough not to trip the relevant checks
+        # until full validation.
+        #
+        # Excluding all pool codes up front means the filler step always
+        # draws from genuinely outside-the-major courses (still ranked by
+        # subject-prefix relevance via prefix_rank below), which is simpler
+        # to reason about and avoids the race entirely.
         excluded_all  = planned_codes | prior_codes | excluded_courses | major_pool_codes
 
         prefix_counts = _Counter(code[:3] for code in planned_codes)
+
+        # Expand prefix_rank with subject_hint from the free-elective node.
+        # This ensures subjects recommended by the major (e.g. Math for CS)
+        # get Tier 2 priority even if the base plan only has 159xxx courses.
+        _hint_prefixes: list[str] = []
+        for _m in resolved_for_pool:
+            def _get_hints(req: dict) -> list:
+                h = []
+                if req.get("label", "").startswith("Free elective"):
+                    h.extend(req.get("subject_hint", []))
+                for ch in req.get("children", []):
+                    h.extend(_get_hints(ch))
+                return h
+            _hint_prefixes.extend(_get_hints(_m.get("requirement", {})))
+
+        # Add hint prefixes with low count (rank them after actual plan prefixes)
+        for _hp in _hint_prefixes:
+            if _hp not in prefix_counts:
+                prefix_counts[_hp] = 0  # ensures they appear in prefix_rank
+
         prefix_rank   = {pfx: rank for rank, (pfx, _) in enumerate(prefix_counts.most_common())}
         max_level = max(
             (self.courses[c].level for c in planned_codes if c in self.courses),
@@ -823,6 +955,11 @@ class PlannerService:
                 # force_total_credits=True because the augmented tree now
                 # includes filler courses that bring the working set to the
                 # degree credit target, so PlanSearch must schedule all of them.
+                # Reduce degree target by transfer_credits so internal
+                # PlanSearch validation passes when transfer covers part of 360cr.
+                _effective_target_credits = (
+                    qual["length"] * 120 - transfer_credits
+                )
                 degree_tree = _bdt(
                     major_req=filtered_aug,
                     qual_level=qual["level"],
@@ -830,6 +967,7 @@ class PlannerService:
                     major_name=name_m,
                     schedulable_major_credits=schedulable_aug_credits,
                     force_total_credits=True,
+                    override_total_credits=_effective_target_credits if transfer_credits > 0 else None,
                 )
             else:
                 degree_tree = self._build_degree_tree(m, req_tree, campus=campus, mode=mode)
@@ -852,6 +990,8 @@ class PlannerService:
             start_semester=start_semester,
             no_summer=no_summer,
         )
+        # Tag filler codes so the generator schedules them AFTER required courses
+        generator_template.filler_codes = frozenset(filler_codes)
 
         # preferred_electives for the filled pass includes filler codes so
         # PlanSearch's _select_electives picks them from the new pool.
@@ -869,19 +1009,15 @@ class PlannerService:
         try:
             filled_plan = search.search()
         except ValueError:
-            # Filling failed. If the shortfall is significant (the base plan is
-            # substantially under the degree target), raise ValueError so the caller
-            # can try a different campus/mode combination. This prevents the batch
-            # planner from reporting a 225/360cr plan as a "result" for a major that
-            # is simply not completable via the requested campus/mode.
+            # Second-pass filling failed.
+            # Re-raise so the batch planner / UI can try another campus/mode -
+            # UNLESS transfer_credits make the remaining gap small enough that
+            # the base plan already satisfies the degree (prior + transfer + scheduled
+            # covers the credit target within 15cr).
             base_total_check = base_plan.total_credits() + base_plan.prior_credits()
             shortfall = degree_total - base_total_check - transfer_credits
             if shortfall > 15:
-                raise ValueError(
-                    f"Cannot complete '{major_name or 'degree'}' to {degree_total}cr "
-                    f"via {campus}/{mode}: only {base_total_check}cr schedulable "
-                    f"({shortfall}cr short). Try a different campus or delivery mode."
-                )
+                raise  # re-raise: genuinely not completable here, try another mode
             if transfer_credits > 0:
                 base_plan.transfer_credits = transfer_credits
             return base_plan, filler_codes
@@ -1035,6 +1171,36 @@ class PlannerService:
         if qual is None:
             return 360
         return profile_for(qual["level"], qual["length"]).total_credits
+
+
+    def required_course_codes(self, major_name: str) -> set[str]:
+        """
+        Return the set of course codes that are REQUIRED (ALL_OF nodes) for this
+        major - i.e. courses the student must complete, not optional elective pool
+        entries.
+
+        Used to detect campus/mode unavailability warnings: if a required course
+        has no offering at the chosen campus+mode, the student cannot complete this
+        major via that delivery mode.
+        """
+        resolved = self._resolve_major(major_name)
+        if not resolved:
+            return set()
+        req = resolved[0].get("requirement", {})
+        return self._collect_required_codes(req)
+
+    def _collect_required_codes(self, req: dict) -> set[str]:
+        """Recursively collect ALL_OF / COURSE codes (not CHOOSE_CREDITS pools)."""
+        result: set[str] = set()
+        t = req.get("type", "")
+        if t == "COURSE":
+            result.add(req.get("course_code", ""))
+        elif t == "ALL_OF":
+            for child in req.get("children", []):
+                # Don't recurse into CHOOSE_CREDITS (these are optional pools)
+                if child.get("type") != "CHOOSE_CREDITS":
+                    result.update(self._collect_required_codes(child))
+        return result
 
     def free_elective_gap(
         self,
@@ -1208,7 +1374,7 @@ class PlannerService:
         prior_completed: frozenset = frozenset(),
         preferred_electives: frozenset = frozenset(),
         excluded_courses: frozenset = frozenset(),
-        no_summer: bool = False,
+        no_summer: bool = True,
         transfer_credits: int = 0,
     ) -> tuple["DegreePlan", dict, list[str]]:
         """
@@ -1238,6 +1404,7 @@ class PlannerService:
             campus=campus,
             mode=mode,
             start_year=start_year,
+            start_semester=start_semester,
             prior_completed=prior_completed,
             preferred_electives=preferred_electives,
             excluded_courses=excluded_courses,
@@ -1246,71 +1413,40 @@ class PlannerService:
         )
 
         # --- Step 2: compute gap ---------------------------------------------
+        # IMPORTANT: degree_target is the qualification's graduation minimum
+        # (e.g. 360cr for a BSc) - it is NOT the minimum credits required to
+        # satisfy BOTH majors' requirement trees. Two real majors with little
+        # subject overlap routinely need MORE than the single-degree minimum
+        # once their distinct compulsory/elective-pool courses are summed,
+        # even after deduplicating shared courses.
+        #
+        # A previous version of this method treated `degree_target` as a hard
+        # ceiling and deleted required courses from the combined plan whenever
+        # the genuinely-required course load exceeded it. That produced plans
+        # which passed their own credit-total check but FAILED the degree
+        # validator (missing required elective-pool credits for one of the
+        # two majors) - i.e. a plan that looked complete but wasn't. See
+        # tests/test_double_major_trim_regression.py for the regression case.
+        #
+        # The correct floor is whichever is larger: the qualification minimum,
+        # or the credits the base (unfilled) plan actually needed to satisfy
+        # both requirement trees. We only ever ADD filler to reach this floor;
+        # we never remove courses the requirement trees say are needed.
         first_total  = self.degree_total_credits(major_name)
         second_total = self.degree_total_credits(second_major_name)
-        degree_target = max(first_total, second_total)
+        qualification_minimum = max(first_total, second_total)
 
         credits_planned = base_plan.total_credits() + base_plan.prior_credits()
+        degree_target = max(qualification_minimum, credits_planned)
+
         gap = max(0, degree_target - credits_planned)
         effective_gap = max(0, gap - transfer_credits)
 
+        if credits_planned > qualification_minimum:
+            info["extra_credits_required"] = credits_planned - qualification_minimum
+            info["combined_majors_exceed_qualification_minimum"] = True
+
         if effective_gap <= 0:
-            # Even when no filler is needed, prereq expansion may have
-            # pushed the base plan over degree_target. Use the search's
-            # internal trim (via _plan_for_major) if the plan is over.
-            # Since we return base_plan directly here, apply a quick trim.
-            base_total_cr = sum(sum(c.credits for c in s.courses) for s in base_plan.semesters)
-            if base_total_cr > degree_target:
-                excess = base_total_cr - degree_target
-                plan_codes_set = {c.code for s in base_plan.semesters for c in s.courses}
-                from coursemap.domain.prerequisite import (
-                    CoursePrerequisite as _CPd,
-                    AndExpression as _ANDd,
-                    OrExpression as _ORd,
-                )
-                prereqs_needed_d: set[str] = set()
-                for s in base_plan.semesters:
-                    for c in s.courses:
-                        if c.prerequisites is None: continue
-                        stk = [c.prerequisites]
-                        while stk:
-                            n = stk.pop()
-                            if isinstance(n, _CPd) and n.code in plan_codes_set:
-                                prereqs_needed_d.add(n.code)
-                            elif isinstance(n, (_ANDd, _ORd)):
-                                stk.extend(n.children)
-                from coursemap.domain.requirement_utils import collect_course_codes as _ccc2, collect_elective_nodes as _cen3
-                pool_codes_d: set[str] = set()
-                req_codes_d: set[str] = set()
-                for _mn in [major_name, second_major_name]:
-                    _rx = self._resolve_major(_mn)
-                    if not _rx: continue
-                    _rt2 = self._build_major_req_tree(_rx[0])
-                    _all_t = _ccc2(_rt2)
-                    _pool_t = {c for n in _cen3(_rt2) if isinstance(n, _CCR) for c in n.course_codes}
-                    pool_codes_d.update(_pool_t)
-                    req_codes_d.update(_all_t - _pool_t)
-                # Removable: pool courses not in required_codes/always_include
-                removable_d = sorted(
-                    [c for s in base_plan.semesters for c in s.courses
-                     if c.code in pool_codes_d and c.code not in req_codes_d
-                     and c.code not in prereqs_needed_d],
-                    key=lambda c: (-c.level, c.code),
-                )
-                removed_d: set[str] = set()
-                for cand in removable_d:
-                    if excess <= 0: break
-                    if cand.code not in removed_d:
-                        removed_d.add(cand.code)
-                        excess -= cand.credits
-                if removed_d:
-                    from coursemap.domain.plan import SemesterPlan
-                    new_sems = []
-                    for sem in base_plan.semesters:
-                        nc = [c for c in sem.courses if c.code not in removed_d]
-                        if nc:
-                            new_sems.append(SemesterPlan(year=sem.year, semester=sem.semester, courses=tuple(nc)))
-                    base_plan = type(base_plan)(semesters=tuple(new_sems), prior_completed=base_plan.prior_completed, transfer_credits=base_plan.transfer_credits)
             return base_plan, info, []
 
         # --- Step 3: find filler candidates ----------------------------------

@@ -223,12 +223,30 @@ class ElectiveFiller:
         """
         Return True if the course's prerequisites can be met from ``available``.
 
-        This is a loose check (are all required codes present anywhere in
-        ``available``?) - the scheduler does the exact ordering check. We're
-        just filtering out courses that can never be taken given the student's
-        plan, not computing when they can be taken.
+        Uses an OR-aware check: an OR expression is satisfiable if ANY one branch
+        is met. An AND expression requires ALL branches. This prevents the old
+        ``required_courses()`` approach from demanding all OR-branch codes are
+        present simultaneously (which is too strict - it rejects courses that
+        only need one of several alternatives).
         """
-        if course.prerequisites is None:
+        prereq = course.prerequisites
+        if prereq is None:
             return True
-        required = course.prerequisites.required_courses()
-        return required.issubset(available)
+
+        from coursemap.domain.prerequisite import (
+            AndExpression,
+            OrExpression,
+            CoursePrerequisite,
+        )
+
+        def _sat(node) -> bool:
+            if isinstance(node, CoursePrerequisite):
+                return node.code in available
+            if isinstance(node, AndExpression):
+                return all(_sat(c) for c in node.children)
+            if isinstance(node, OrExpression):
+                return any(_sat(c) for c in node.children)
+            # Unknown node type: assume satisfiable (don't over-reject)
+            return True
+
+        return _sat(prereq)

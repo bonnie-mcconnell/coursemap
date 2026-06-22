@@ -30,6 +30,7 @@ partial name, picking the major whose plan has the best score.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import math
 import re
@@ -44,11 +45,16 @@ from coursemap.domain.requirement_nodes import (
     MajorRequirement,
     RequirementNode,
 )
-from coursemap.domain.requirement_nodes import CourseRequirement as CourseReq
 from coursemap.domain.requirement_utils import (
     collect_course_codes,
+    collect_course_node_codes as _shared_collect_course_node_codes,
     collect_elective_nodes,
     find_total_credits,
+)
+from coursemap.domain.prerequisite import (
+    CoursePrerequisite as _CoursePrerequisite,
+    AndExpression as _AndExpression,
+    OrExpression as _OrExpression,
 )
 from coursemap.domain.prerequisite_utils import prereqs_met
 from coursemap.planner.generator import PlanGenerator
@@ -61,24 +67,137 @@ logger = logging.getLogger(__name__)
 _scorer = PlanScorer()
 
 
+def _estimate_chain_cost(
+    code: str,
+    courses: dict,
+    already_counted: set[str],
+    visited: set[str] | None = None,
+) -> int:
+    """
+    Estimate the additional credits required to satisfy `code`'s prerequisite
+    chain, beyond codes already in `already_counted` (e.g. the major's own
+    required-course list). Used by the required-courses credit-cap trim in
+    _plan_for_major to account for the fact that keeping a `tree_required`
+    course can commit the plan to extra, not-independently-required
+    prerequisite courses - credits that the trim's cost accounting would
+    otherwise miss entirely, since it previously only counted each kept
+    course's own credits.
+
+    This is a simpler, standalone estimate - not the same machinery as
+    _build_working_set's full chain expansion, which also accounts for
+    prior_completed and the final all_codes set (neither of which exist yet
+    at the point this estimate needs to run, since this estimate is what
+    determines required_codes in the first place). For OR-prerequisites,
+    picks whichever branch is already in `already_counted` (free) if one
+    exists, otherwise the lowest-level branch (cheapest, matching the same
+    heuristic _build_working_set itself uses for the same case).
+
+    This is intentionally a slight overestimate in rare cases (e.g. it can't
+    know a later step will independently add a course that would have made
+    this chain free) - overestimating chain cost during the trim's budget
+    calculation is the safe direction: it means the trim reserves slightly
+    more room than strictly necessary for tree_required courses, which can
+    only make the elective pool's actual share smaller than ideal, never
+    cause a tree_required course to be incorrectly dropped (which is the
+    failure mode that made the earlier, reverted fix attempt unsafe).
+    """
+    if visited is None:
+        visited = set()
+    if code in visited or code not in courses:
+        return 0
+    visited.add(code)
+
+    course = courses[code]
+    prereq = course.prerequisites
+    if prereq is None:
+        return 0
+
+    def _expr_cost(node) -> int:
+        if isinstance(node, _CoursePrerequisite):
+            child = node.code
+            if child in already_counted or child in visited:
+                return 0
+            if child not in courses:
+                return 0
+            return courses[child].credits + _estimate_chain_cost(
+                child, courses, already_counted, visited
+            )
+        if isinstance(node, _AndExpression):
+            return sum(_expr_cost(c) for c in node.children)
+        if isinstance(node, _OrExpression):
+            # Free if any branch is already counted; otherwise cheapest.
+            for child in node.children:
+                if isinstance(child, _CoursePrerequisite) and child.code in already_counted:
+                    return 0
+            costs = [_expr_cost(c) for c in node.children]
+            return min(costs) if costs else 0
+        return 0
+
+    return _expr_cost(prereq)
+
+
 def _collect_course_node_codes(node: RequirementNode) -> set[str]:
     """
     Collect codes from COURSE requirement nodes only, ignoring pool members.
 
-    Unlike collect_course_codes, this does not recurse into ChooseCreditsRequirement
-    nodes. Used to find codes that are individually required (COURSE nodes) even
-    when those same codes also appear in elective pools.
+    Thin wrapper around the shared collect_course_node_codes in
+    requirement_utils, kept here so existing call sites in this module don't
+    need updating. See requirement_utils.collect_course_node_codes for the
+    actual implementation and docstring.
     """
-    if isinstance(node, CourseReq):
-        return {node.course_code}
-    if isinstance(node, (AllOfRequirement, AnyOfRequirement)):
-        result: set[str] = set()
-        for child in node.children:
-            result |= _collect_course_node_codes(child)
-        return result
-    if isinstance(node, MajorRequirement):
-        return _collect_course_node_codes(node.requirement)
-    return set()
+    return _shared_collect_course_node_codes(node)
+
+
+def _resolve_or_prerequisite(prereq, working_codes: set[str]):
+    """
+    Rewrite an OrExpression so it references only the branch actually present
+    in the working set, when exactly that situation applies - leaving
+    everything else (AndExpression, fully-resolved OrExpression, fully
+    external OrExpression, None) unchanged.
+
+    Background: PlanSearch._build_working_set's prerequisite-chain expansion
+    deliberately adds only ONE branch of a course's OR prerequisite to the
+    working set (to avoid scheduling an unneeded sibling course). That leaves
+    the course's ORIGINAL OrExpression intact, with the unchosen sibling
+    branch absent from the working set - indistinguishable, from inside
+    prereqs_met() or the rebalancer's _prereq_codes_or_aware(), from a
+    genuine external admission-gatekeeper code (which is also legitimately
+    absent and meant to be treated as pre-satisfied). That ambiguity let the
+    OR be satisfied vacuously via the absent sibling, regardless of whether
+    the chosen branch had actually been scheduled.
+
+    This function resolves the ambiguity using the context available here
+    (which branch the expansion actually chose): if exactly one top-level
+    CoursePrerequisite child of an OR is in `working_codes` and at least one
+    sibling is not, return a prerequisite referencing only that one chosen
+    branch. If zero or more-than-one children are in `working_codes`, the
+    expression is left unchanged (zero = the whole OR is external, handled
+    correctly already; more-than-one = no ambiguity, any of them being
+    completed satisfies the OR, which is exactly what the unmodified
+    OrExpression already does).
+
+    Only direct CoursePrerequisite children are considered for resolution -
+    nested expressions within a branch are left as-is, since the bug this
+    fixes only arises from the top-level OR-of-courses pattern that
+    _build_working_set's expansion explicitly optimises for.
+    """
+    if prereq is None:
+        return prereq
+    if isinstance(prereq, _OrExpression):
+        course_children = [c for c in prereq.children if isinstance(c, _CoursePrerequisite)]
+        other_children = [c for c in prereq.children if not isinstance(c, _CoursePrerequisite)]
+        in_working = [c for c in course_children if c.code in working_codes]
+        if len(in_working) == 1 and len(course_children) > 1 and not other_children:
+            return in_working[0]
+        return prereq
+    if isinstance(prereq, _AndExpression):
+        new_children = tuple(
+            _resolve_or_prerequisite(child, working_codes) for child in prereq.children
+        )
+        if new_children == prereq.children:
+            return prereq
+        return _AndExpression(new_children)
+    return prereq
 
 
 class PlanSearch:
@@ -242,9 +361,46 @@ class PlanSearch:
                     )
                     return (in_tree, 0 if has_matching else 1, c.level, code)
 
+                # tree_required codes can NEVER be dropped - the (filtered)
+                # degree tree explicitly checks them as COURSE nodes, and
+                # dropping one would fail validation. So they're reserved
+                # first, unconditionally, INCLUDING their estimated
+                # prerequisite-chain cost (a course not independently
+                # required by the major, but needed to satisfy a
+                # tree_required course's prerequisite - e.g. 175101, pulled
+                # in only because 175201 requires it). Without counting this
+                # chain cost here, the trim would only count each kept
+                # course's own credits, and _build_working_set would later
+                # add the uncounted chain courses anyway - silently eating
+                # into credits that were supposed to be reserved for the
+                # elective pool. Found auditing Security Studies – Graduate
+                # Diploma in Arts and Educational Psychology – Diploma in
+                # Arts, both of which came up short on their elective pool
+                # by exactly their chain-expansion's credit cost.
+                #
+                # Only after tree_required's full cost is reserved does any
+                # REMAINING budget go to droppable over-capture excess
+                # (non-tree-required codes) - these are genuinely safe to
+                # drop, since validation doesn't depend on them.
+                tree_required_in_codes = sorted(
+                    (c for c in required_codes if c in tree_required), key=_req_sort
+                )
+                non_tree_required = sorted(
+                    (c for c in required_codes if c not in tree_required), key=_req_sort
+                )
+
                 capped: set[str] = set()
                 running = 0
-                for code in sorted(required_codes, key=_req_sort):
+                already_counted: set[str] = set(tree_required_in_codes)
+                for code in tree_required_in_codes:
+                    c = self.courses.get(code)
+                    if c is None:
+                        continue
+                    capped.add(code)
+                    running += c.credits + _estimate_chain_cost(
+                        code, self.courses, already_counted
+                    )
+                for code in non_tree_required:
                     if running >= req_budget:
                         break
                     c = self.courses.get(code)
@@ -283,6 +439,32 @@ class PlanSearch:
             if degree_total > 0
             else 0
         )
+
+        # When the major includes an open free-elective pool ("choose any
+        # Ncr"), that pool has no fixed course list for _select_electives to
+        # draw from - it isn't even included in pure_elective_nodes below
+        # (its course_codes is empty). If elective_budget includes the open
+        # pool's share, _select_electives' top-up pass has no way to "spend"
+        # that share on the open pool, so it spends it on the NAMED pools
+        # instead - over-selecting them well past their own stated targets.
+        # That produces a plan that reaches the right TOTAL credits but never
+        # actually uses any genuine free electives, silently masking the open
+        # pool requirement instead of satisfying it.
+        #
+        # Cap the budget passed to _select_electives at what the named pools
+        # can actually need, so the open pool's share is left as a genuine
+        # gap. generate_filled_plan picks that gap up afterwards and fills it
+        # with real outside-the-major filler courses.
+        open_pool_credits = sum(
+            n.credits for n in elective_nodes
+            if isinstance(n, ChooseCreditsRequirement) and n.open_pool and not n.course_codes
+        )
+        named_pool_target_sum = sum(
+            n.credits for n in elective_nodes
+            if not (isinstance(n, ChooseCreditsRequirement) and n.open_pool and not n.course_codes)
+        )
+        if open_pool_credits > 0:
+            elective_budget = min(elective_budget, named_pool_target_sum)
 
 
         # Re-filter the degree tree whenever required courses were capped to
@@ -415,6 +597,11 @@ class PlanSearch:
             max_semesters=dynamic_max_semesters,
             no_summer=self.generator_template.no_summer,
         )
+        # Propagate filler_codes from the template so the generator's sort key
+        # schedules required courses before filler electives. Without this the
+        # filler_codes frozenset on the template is set but ignored by the new
+        # generator instance that actually runs generate().
+        generator.filler_codes = getattr(self.generator_template, "filler_codes", frozenset())
         plan = generator.generate()
 
         # Step 6: attach prior-completed course objects using the full catalogue
@@ -856,9 +1043,17 @@ class PlanSearch:
         if course is None:
             return (preferred, 3, 999, code)
 
+        campus = self.generator_template.campus
+        mode   = self.generator_template.mode
         sem_order = {"S1": 0, "S2": 1, "SS": 2}
+        # Filter by campus/mode so we sort on the semester this student will use,
+        # not on all offerings (e.g. internal S1 should not affect a DIS student)
+        relevant_sems = [
+            o.semester for o in course.offerings
+            if o.campus == campus and o.mode == mode
+        ]
         earliest_sem = min(
-            (sem_order.get(o.semester, 3) for o in course.offerings),
+            (sem_order.get(s, 3) for s in relevant_sems),
             default=3,
         )
         return (preferred, earliest_sem, course.level, code)
@@ -922,13 +1117,22 @@ class PlanSearch:
             prereq = course.prerequisites
             if prereq is None:
                 return set()
-            needed: set[str] = set()
-            stack = [prereq]
-            while stack:
-                node = stack.pop()
-                from coursemap.domain.prerequisite import (
-                    CoursePrerequisite, AndExpression, OrExpression,
-                )
+            from coursemap.domain.prerequisite import (
+                CoursePrerequisite, AndExpression, OrExpression,
+            )
+
+            def _expand_node(node) -> set[str]:
+                """
+                OR-aware prereq expansion.
+
+                AND: expand ALL children (all are required).
+                OR:  expand ONLY the best available branch:
+                     - already completed → free, pick it
+                     - already in working set → reuse it
+                     - otherwise pick the lowest-level schedulable branch
+                This prevents OR(A, B) from adding both A and B when only
+                one is needed, which was causing unnecessary course bloat.
+                """
                 if isinstance(node, CoursePrerequisite):
                     child = node.code
                     if (
@@ -937,11 +1141,32 @@ class PlanSearch:
                         and child not in prior_completed
                         and child not in self.excluded_courses
                     ):
-                        needed.add(child)
-                        needed.update(_collect_prereq_codes(child, visited))
-                elif isinstance(node, (AndExpression, OrExpression)):
-                    stack.extend(node.children)
-            return needed
+                        result = {child}
+                        result.update(_collect_prereq_codes(child, set(visited)))
+                        return result
+                    return set()
+                if isinstance(node, AndExpression):
+                    result: set[str] = set()
+                    for child in node.children:
+                        result.update(_expand_node(child))
+                    return result
+                if isinstance(node, OrExpression):
+                    # Already satisfied by a prior_completed or in-plan course?
+                    for child in node.children:
+                        if isinstance(child, CoursePrerequisite):
+                            if child.code in prior_completed or child.code in all_codes:
+                                return set()  # satisfied - no expansion needed
+                    # Pick the branch with the lowest level (simplest prereq)
+                    def _branch_cost(child) -> int:
+                        if isinstance(child, CoursePrerequisite):
+                            c = self.courses.get(child.code)
+                            return c.level if c else 999
+                        return 500  # nested expression - deprioritise
+                    best = min(node.children, key=_branch_cost)
+                    return _expand_node(best)
+                return set()
+
+            return _expand_node(prereq)
 
         # Expand prereq chains. Pass only the expansion set as "visited"
         # (not all_codes) so we can collect prereqs for major courses.
@@ -955,7 +1180,7 @@ class PlanSearch:
         all_codes.update(expansion)
         # ------------------------------------------------------------------
 
-        return {
+        working = {
             code: self.courses[code]
             for code in all_codes
             if (
@@ -965,6 +1190,39 @@ class PlanSearch:
                 and _has_valid_offering(self.courses[code])
             )
         }
+
+        # --- Resolve ambiguous OR-prerequisites against the final working set ---
+        #
+        # The OR-expansion above (_expand_node) deliberately adds only ONE
+        # branch of a course's OR prerequisite to the working set, to avoid
+        # bloating the plan with an unneeded sibling course. But this leaves
+        # the course's ORIGINAL prerequisite expression untouched - still a
+        # full OrExpression with the unchosen sibling branch absent from
+        # `working`. Downstream, prereqs_met() and the rebalancer's
+        # _prereq_codes_or_aware() both treat "absent from known" as
+        # "pre-satisfied" (correct for genuine external gatekeeper codes,
+        # e.g. admission requirements that never appear as schedulable
+        # courses) - but from inside those generic functions, an absent
+        # OR-sibling looks IDENTICAL to a genuine external gatekeeper. That
+        # ambiguity let the OR be treated as vacuously satisfied via the
+        # "absent" sibling, regardless of whether the CHOSEN branch (the one
+        # actually present in the working set) had been scheduled yet.
+        #
+        # Resolving it here, with the full context of which branch was
+        # actually chosen, removes the ambiguity at its source: replace the
+        # course's prerequisite with just the resolved branch whenever
+        # exactly one top-level OR branch ended up in `working` and at least
+        # one sibling did not. A genuinely external OR (no branch in
+        # `working` at all) is left untouched, since that case is correctly
+        # handled as "fully outside this plan's scope" already.
+        resolved_working: dict[str, Course] = {}
+        for code, course in working.items():
+            new_prereq = _resolve_or_prerequisite(course.prerequisites, set(working))
+            if new_prereq is not course.prerequisites:
+                course = dataclasses.replace(course, prerequisites=new_prereq)
+            resolved_working[code] = course
+
+        return resolved_working
 
     # ------------------------------------------------------------------
     # Prerequisite feasibility check
