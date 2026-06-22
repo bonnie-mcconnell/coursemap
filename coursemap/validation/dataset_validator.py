@@ -22,8 +22,35 @@ import logging
 from dataclasses import dataclass, field
 
 from coursemap.domain.course import Course
+from coursemap.domain.prerequisite import AndExpression, OrExpression, CoursePrerequisite
 from coursemap.domain.requirement_serialization import requirement_from_dict
 from coursemap.domain.requirement_utils import collect_course_codes
+
+
+def _prereq_hard_codes(prereq, known: set[str]) -> set[str]:
+    """
+    Return prerequisite codes that MUST be completed before this course.
+
+    OR-aware: for OR(A, B), only codes present in ALL branches are "hard"
+    requirements. This prevents phantom cycle-detection edges that arise
+    from treating OR branches as if they were AND branches.
+    """
+    if prereq is None:
+        return set()
+    if isinstance(prereq, CoursePrerequisite):
+        return {prereq.code} if prereq.code in known else set()
+    if isinstance(prereq, AndExpression):
+        result: set[str] = set()
+        for child in prereq.children:
+            result |= _prereq_hard_codes(child, known)
+        return result
+    if isinstance(prereq, OrExpression):
+        branch_sets = [_prereq_hard_codes(child, known) for child in prereq.children]
+        if not branch_sets:
+            return set()
+        # Intersection: only codes required by EVERY branch are truly hard
+        return branch_sets[0].intersection(*branch_sets[1:])
+    return set()
 
 logger = logging.getLogger(__name__)
 
@@ -154,13 +181,17 @@ def _build_prereq_adjacency(
     """
     Build the prerequisite adjacency restricted to the known course set.
 
-    adj[A] = {B, C} means course A requires B and C (B and C must be
+    adj[A] = {B, C} means course A ALWAYS requires B and C (B and C must be
     scheduled before A).  Edges to unknown codes are excluded.
+
+    Uses OR-aware traversal: OR(A, B) only contributes edges in the
+    intersection of both branches (codes required by every branch). This
+    prevents phantom cycle-detection edges from OR alternatives that a student
+    only needs to satisfy one of.
     """
     known = set(courses.keys())
     return {
-        code: (course.prerequisites.required_courses() & known
-               if course.prerequisites else set())
+        code: _prereq_hard_codes(course.prerequisites, known)
         for code, course in courses.items()
     }
 
@@ -307,6 +338,12 @@ def check_offerings(
                     f"Course {code!r} offering[{i}]: unrecognised mode "
                     f"{offering.mode!r}. "
                     f"Valid values: {sorted(VALID_MODES)}."
+                )
+            # Validate full_year flag type
+            if not isinstance(getattr(offering, "full_year", False), bool):
+                errors.append(
+                    f"Course {code!r} offering[{i}]: full_year must be bool, "
+                    f"got {type(offering.full_year).__name__!r}."
                 )
 
 
