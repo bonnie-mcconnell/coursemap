@@ -138,3 +138,20 @@ class _PlanStore:
 
 # Module-level singleton - created once on import
 plan_store = _PlanStore()
+
+
+# ---------------------------------------------------------------------------
+# Async wrappers - use in async FastAPI handlers to avoid blocking the event loop
+# ---------------------------------------------------------------------------
+
+import asyncio as _asyncio
+
+
+async def async_get(plan_id: str) -> dict | None:
+    """Non-blocking wrapper around plan_store.get()."""
+    return await _asyncio.to_thread(plan_store.get, plan_id)
+
+
+async def async_put(plan_id: str, params: dict, result: dict) -> None:
+    """Non-blocking wrapper around plan_store.put()."""
+    await _asyncio.to_thread(plan_store.put, plan_id, params, result)
